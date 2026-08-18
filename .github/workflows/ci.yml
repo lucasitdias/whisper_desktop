@@ -1,0 +1,33 @@
+name: Qualidade
+
+on:
+  push:
+    branches: [main, "agent/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    name: ${{ matrix.os }} / Python 3.11
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v8
+        with:
+          version: "latest"
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv venv --python 3.11
+      - run: uv pip install -r requirements/cpu.txt
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync pytest
+      - run: uv run --no-sync python build.py --prepare-ffmpeg
+      - run: uv run --no-sync python main.py --self-check
