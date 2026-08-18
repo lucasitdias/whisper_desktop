@@ -23,8 +23,10 @@ Releases.
 - build CPU one-file: `WhisperTranscriber.exe`, 316.973.343 bytes;
 - SHA-256 do build local: `DF625A3AAA7C23182B3AB0AEAF8C0BDA45469A210A76039E6866F7BE5CB99077`;
 - `WhisperTranscriber.exe --self-check`: aprovado com código de saída 0.
+- GitHub Actions `Qualidade` (execução `32103343863`): aprovado em Windows e Linux.
 
-As execuções Linux e a transcrição de áudio real permanecem nos portões de CI/aceitação manual.
+A transcrição de áudio real permanece na aceitação manual porque nenhum arquivo de áudio foi
+fornecido para esta entrega.
 
 ## 2. Cobertura comportamental
 
