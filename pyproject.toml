@@ -1,6 +1,6 @@
 [project]
 name = "whisper-transcriber-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "Aplicativo desktop local para transcrição de MP3 e M4A em Markdown."
 readme = "docs/README.md"
 requires-python = ">=3.11,<3.12"

@@ -16,17 +16,23 @@ Releases.
 ### Evidências locais em 18/08/2026
 
 - Windows 11 x64, Python 3.11.16 e `ruff check .`: aprovado;
-- `pytest`: 19 testes aprovados;
+- `pytest`: 25 testes aprovados;
 - `uv run --no-sync python main.py --self-check`: aprovado;
 - dispositivo detectado: `GPU CUDA: NVIDIA GeForce RTX 5070 Laptop GPU`;
 - FFmpeg estático 8.1.2 baixado, SHA-256 verificado e executável validado;
-- build CPU one-file: `WhisperTranscriber.exe`, 316.973.343 bytes;
-- SHA-256 do build local: `DF625A3AAA7C23182B3AB0AEAF8C0BDA45469A210A76039E6866F7BE5CB99077`;
-- `WhisperTranscriber.exe --self-check`: aprovado com código de saída 0.
+- regressão de build `--windowed`: `stdout`/`stderr` ausentes são substituídos por fluxos graváveis,
+  eliminando a falha `'NoneType' object has no attribute 'write'` durante o download do modelo;
+- transcrição real de uma amostra de 60 segundos do MP3 do usuário: aprovada em CUDA, com 20
+  segmentos e Markdown de 829 caracteres;
+- build CUDA `--onedir`: 12.119 arquivos e 3.326.602.046 bytes;
+- instalador Windows x64: `WhisperTranscriber-Setup-Windows-x64.exe`, 1.798.005.492 bytes;
+- SHA-256 do instalador: `049603309072035341EAB7D597294B6296021A4A79A1244FE0A01FB30F8C7C02`;
+- instalação silenciosa por usuário: aprovada com código de saída 0, executável e desinstalador;
+- aplicativo instalado `--self-check-output`: aprovado com FFmpeg incorporado e RTX 5070 em CUDA;
+- o executável local não assinado foi bloqueado pelo Smart App Control, mas o instalador e o
+  aplicativo instalado foram aceitos. O artefato permanece sem Authenticode por falta de
+  certificado de publicação.
 - GitHub Actions `Qualidade` (execução `32103343863`): aprovado em Windows e Linux.
-
-A transcrição de áudio real permanece na aceitação manual porque nenhum arquivo de áudio foi
-fornecido para esta entrega.
 
 ## 2. Cobertura comportamental
 
@@ -54,7 +60,8 @@ fornecido para esta entrega.
 - confirmar que a GUI continua responsiva e mostra progresso/trechos;
 - confirmar CUDA na RTX 5070 e executar o artefato CPU para validar fallback;
 - editar a fonte, conferir a prévia, copiar e salvar sem sobrescrita silenciosa;
-- abrir os executáveis Windows/Linux e executar `--self-check`.
+- abrir os executáveis Windows/Linux e executar `--self-check`;
+- transcrever um M4A real, pois a regressão local desta versão usou MP3.
 
 O modelo real não é baixado no CI. Essa aceitação permanece opt-in para evitar custo, tráfego e uso
 de áudio não autorizado.

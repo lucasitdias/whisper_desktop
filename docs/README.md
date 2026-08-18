@@ -12,7 +12,8 @@ transcrição usa o modelo OpenAI Whisper `turbo`, fixado em Português do Brasi
 - download automático e verificado do FFmpeg 8.1.2;
 - progresso e trechos exibidos durante a transcrição;
 - editor Markdown, prévia formatada, cópia e salvamento seguro;
-- executável único Windows/Linux criado com PyInstaller.
+- executável portátil Windows/Linux criado com PyInstaller;
+- instalador Windows x64 com CUDA, FFmpeg, atalhos e desinstalador.
 
 ## Requisitos
 
@@ -40,6 +41,12 @@ Autoverificação sem abrir a GUI nem baixar o modelo:
 uv run main.py --self-check
 ```
 
+Em aplicativos empacotados sem console, use a saída JSON:
+
+```powershell
+WhisperTranscriber.exe --self-check-output self-check.json
+```
+
 ## Testes e qualidade
 
 ```powershell
@@ -51,6 +58,8 @@ Os testes simulam Whisper e Torch; o CI não baixa o modelo. Uma transcrição r
 fornecido pelo usuário.
 
 ## Build local
+
+Executável portátil da plataforma atual:
 
 ```powershell
 uv run build.py
@@ -64,6 +73,22 @@ O script baixa e verifica o FFmpeg da plataforma e gera:
 O build local incorpora o PyTorch do ambiente atual. As releases por tag `v*` usam o perfil CPU
 portátil definido em `requirements/cpu.txt`.
 
+No Windows, o instalador completo com CUDA é gerado por:
+
+```powershell
+uv run build.py --installer
+```
+
+O resultado fica em `dist/installer/WhisperTranscriber-Setup-Windows-x64.exe`. A instalação é feita
+somente para o usuário atual em `%LOCALAPPDATA%\Programs\Whisper Transcriber Desktop`, cria atalhos
+e inclui desinstalador. O modelo `turbo` não é incorporado: ele é baixado e verificado na primeira
+transcrição para o cache do usuário.
+
+O instalador produzido localmente não possui assinatura Authenticode sem um certificado de
+publicação. Em computadores com Smart App Control no modo estrito, o Windows pode impedir a
+execução de binários locais sem reputação. Não desative essa proteção; assine o artefato com um
+certificado público confiável antes de distribuí-lo amplamente.
+
 ## Estrutura
 
 ```text
@@ -75,6 +100,7 @@ whisper_desktop/
 ├── assets/
 │   └── ffmpeg/              # Destinos Windows/Linux dos binários gerados
 ├── docs/                    # Especificações e guias
+├── installer/               # Script Inno Setup do instalador Windows
 ├── requirements/            # Perfil CPU para CI/releases
 ├── tests/                   # Suíte automatizada
 ├── build.py

@@ -25,7 +25,8 @@ voz e entrevistas em Português do Brasil.
 - Interface e mensagens inteiramente em pt-BR, com tema escuro e suporte High-DPI.
 - Arquivos de áudio nunca são enviados a serviços externos.
 - Windows 10/11 x64 e Linux x86_64 são os alvos suportados.
-- O executável final é `--onefile --windowed` e inclui FFmpeg; o modelo permanece no cache.
+- O executável portátil usa `--onefile --windowed`; o instalador Windows usa `--onedir` e Inno
+  Setup. Ambos incluem FFmpeg, enquanto o modelo permanece no cache do usuário.
 - Python 3.11, `uv`, PySide6, `openai-whisper==20250625`, PyTorch 2.12.1 e PyInstaller 6.
 - O build de desenvolvimento suporta CUDA 13.0; releases usam CPU para portabilidade.
 
@@ -60,5 +61,5 @@ O caminho absoluto do áudio não deve aparecer na exportação.
 
 - gravação de microfone, processamento em lote, diarização e tradução;
 - formatos diferentes de MP3/M4A;
-- macOS, ARM e instaladores nativos;
+- macOS, ARM e instaladores Linux nativos;
 - incorporação dos pesos do modelo no executável.

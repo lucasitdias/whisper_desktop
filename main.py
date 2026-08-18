@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
+from typing import TextIO
 
 from app import __version__
+
+_NULL_STREAMS: list[TextIO] = []
 
 
 def resource_path(relative: str) -> Path:
@@ -15,7 +19,16 @@ def resource_path(relative: str) -> Path:
     return base / relative
 
 
-def self_check() -> int:
+def ensure_standard_streams() -> None:
+    """Fornece streams graváveis quando o PyInstaller é executado com ``--windowed``."""
+    for stream_name in ("stdout", "stderr"):
+        if getattr(sys, stream_name) is None:
+            stream = open(os.devnull, "w", encoding="utf-8")  # noqa: SIM115
+            setattr(sys, stream_name, stream)
+            _NULL_STREAMS.append(stream)
+
+
+def self_check(output_path: str | Path | None = None) -> int:
     from app.core.ffmpeg_finder import FFmpegFinder
     from app.core.transcriber import TranscriberWorker
 
@@ -29,8 +42,13 @@ def self_check() -> int:
             "dispositivo": TranscriberWorker.device_description(),
             "status": "ok",
         }
+        serialized = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+        if output_path is not None:
+            destination = Path(output_path)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(serialized, encoding="utf-8")
         if sys.stdout is not None:
-            sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+            sys.stdout.write(serialized)
         return 0
     except Exception as error:
         if sys.stderr is not None:
@@ -59,14 +77,22 @@ def run_gui() -> int:
 
 
 def main() -> int:
+    ensure_standard_streams()
     parser = argparse.ArgumentParser(description="Whisper Transcriber Desktop")
     parser.add_argument(
         "--self-check",
         action="store_true",
         help="valida dependências e FFmpeg sem abrir a interface",
     )
+    parser.add_argument(
+        "--self-check-output",
+        metavar="ARQUIVO",
+        help="grava o resultado JSON da autoverificação no arquivo informado",
+    )
     args = parser.parse_args()
-    return self_check() if args.self_check else run_gui()
+    if args.self_check or args.self_check_output:
+        return self_check(args.self_check_output)
+    return run_gui()
 
 
 if __name__ == "__main__":
