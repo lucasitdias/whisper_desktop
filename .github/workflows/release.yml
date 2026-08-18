@@ -33,6 +33,7 @@ jobs:
           sudo apt-get install --yes libegl1
       - run: uv python install 3.11
       - run: uv venv --python 3.11
+      - run: uv pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
       - run: uv pip install -r requirements/cpu.txt
       - run: uv run --no-sync python build.py
       - name: Autoverificar executável

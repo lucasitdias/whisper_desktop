@@ -2,6 +2,7 @@
 .venv-cpu/
 .pytest_cache/
 .ruff_cache/
+.uv-cache*/
 __pycache__/
 *.py[cod]
 *.pt
