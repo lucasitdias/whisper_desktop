@@ -19,15 +19,20 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - uses: astral-sh/setup-uv@v10.0.1
         with:
           version: "latest"
           enable-cache: true
+      - name: Instalar bibliotecas Qt no Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libegl1
       - run: uv python install 3.11
       - run: uv venv --python 3.11
       - run: uv pip install -r requirements/cpu.txt
       - run: uv run --no-sync ruff check .
-      - run: uv run --no-sync pytest
+      - run: uv run --no-sync python -m pytest
       - run: uv run --no-sync python build.py --prepare-ffmpeg
       - run: uv run --no-sync python main.py --self-check

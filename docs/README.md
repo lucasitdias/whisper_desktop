@@ -44,7 +44,7 @@ uv run main.py --self-check
 
 ```powershell
 uv run ruff check .
-uv run pytest
+uv run python -m pytest
 ```
 
 Os testes simulam Whisper e Torch; o CI não baixa o modelo. Uma transcrição real deve usar um áudio

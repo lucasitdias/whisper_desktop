@@ -29,6 +29,7 @@ torch = { index = "pytorch-cu130" }
 
 [tool.pytest.ini_options]
 addopts = "-ra"
+pythonpath = ["."]
 qt_api = "pyside6"
 testpaths = ["tests"]
 

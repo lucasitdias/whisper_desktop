@@ -47,7 +47,7 @@ cache local. O modelo `turbo` é baixado na primeira transcrição.
 
 ```powershell
 uv run ruff check .
-uv run pytest
+uv run python -m pytest
 uv run build.py
 ```
 
