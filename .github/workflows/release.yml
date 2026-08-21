@@ -1,4 +1,4 @@
-name: Publicar executável Linux
+name: Publicar downloads
 
 on:
   push:
@@ -25,12 +25,19 @@ jobs:
       - run: uv pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
       - run: uv pip install -r requirements/cpu.txt
       - run: uv run --no-sync python build.py
+      - name: Nomear artefato e gerar checksum
+        run: |
+          mv dist/WhisperTranscriber dist/WhisperTranscriber-Linux-x64
+          sha256sum dist/WhisperTranscriber-Linux-x64 > dist/SHA256SUMS.txt
       - name: Autoverificar executável
-        run: ./dist/WhisperTranscriber --self-check
+        run: ./dist/WhisperTranscriber-Linux-x64 --self-check
       - uses: actions/upload-artifact@v7.0.1
         with:
-          name: WhisperTranscriber-Linux-x64
-          path: dist/WhisperTranscriber
+          name: Downloads-WhisperTranscriber
+          path: |
+            dist/WhisperTranscriber-Linux-x64
+            dist/SHA256SUMS.txt
+            store/Instalar-WhisperTranscriber-Windows.url
           if-no-files-found: error
 
   release:
@@ -46,6 +53,12 @@ jobs:
           generate_release_notes: true
           files: artefatos/**/*
           body: |
-            A versão para Windows é distribuída com assinatura confiável pela
-            Microsoft Store. O artefato desta release é a versão portátil para
-            Linux x86-64.
+            ## Downloads
+
+            - **Windows 10/11 x64:** [instalar pela Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG), ou baixar `Instalar-WhisperTranscriber-Windows.url` para abrir a mesma página.
+            - **Linux x86-64:** baixar `WhisperTranscriber-Linux-x64` e validar com `SHA256SUMS.txt`.
+            - **Código-fonte:** usar os arquivos `.zip` ou `.tar.gz` gerados pelo GitHub abaixo.
+
+            A versão Windows é distribuída pela Store para receber a assinatura
+            confiável da Microsoft. O MSIX não assinado do Partner Center não é
+            oferecido como instalador direto.

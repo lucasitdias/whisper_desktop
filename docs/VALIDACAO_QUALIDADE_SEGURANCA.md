@@ -10,13 +10,13 @@ Todo push e pull request deve passar em Windows e Linux:
 4. download/verificação do FFmpeg;
 5. `main.py --self-check`.
 
-Tags `v*` adicionam build PyInstaller, autoverificação do executável e publicação no GitHub
-Releases.
+Tags `v*` adicionam build PyInstaller Linux CPU, autoverificação, checksum, atalho da Microsoft
+Store e publicação no GitHub Releases.
 
 ### Evidências locais entre 18 e 20/08/2026
 
 - Windows 11 x64, Python 3.11.16 e `ruff check .`: aprovado;
-- `pytest`: 28 testes aprovados;
+- `pytest`: 36 testes aprovados;
 - `uv run --no-sync python main.py --self-check`: aprovado;
 - dispositivo detectado: `GPU CUDA: NVIDIA GeForce RTX 5070 Laptop GPU`;
 - FFmpeg estático 8.1.2 baixado, SHA-256 verificado e executável validado;
@@ -43,7 +43,21 @@ Releases.
   antes da inicialização. O código-fonte CUDA e a estrutura completa do pacote foram validados; o
   executável CPU empacotado é validado novamente pelo runner Windows da release. Distribuição sem
   aviso do Smart App Control exige certificado Authenticode público, não disponível neste projeto.
-- GitHub Actions `Qualidade` (execução `32103343863`): aprovado em Windows e Linux.
+- MSIX Windows x64 0.2.1: `WhisperTranscriber-Desktop-0.2.1-Windows-x64.msix`,
+  2.149.620.884 bytes e SHA-256
+  `890821823700DB46047D8ADE1CB648065D318C1F139F05BF546F40F941FEF179`;
+- identidade MSIX `WhisperTranscriber.WhisperTranscriberDesktop`, versão `1.2.1.0`, arquitetura x64
+  e executável principal verificados pelo build;
+- o Partner Center aceitou e marcou o MSIX 0.2.1 como `Validated`;
+- MSIX Windows x64 0.2.2: `WhisperTranscriber-Desktop-0.2.2-Windows-x64.msix`,
+  2.149.620.732 bytes, versão `1.2.2.0` e SHA-256
+  `47CAF48B7B39D4CC4152624E42E0270C08CE325C3FC3CF96D6424D36BE26C1BA`;
+- o build 0.2.2 executou a autoverificação do binário empacotado em CUDA e verificou identidade,
+  arquitetura, manifesto e executável do MSIX antes do upload ao Partner Center;
+- GitHub Actions `Qualidade` da PR 2 (execução `32446586592`): aprovado em Windows e Linux;
+- GitHub Actions da release v0.2.1 (execução `32446743858`): build, autoverificação e publicação
+  Linux aprovados; executável de 601 MB com SHA-256
+  `91d7acac3b8cde80ec57eca39a36f779f7d80eb11befb20aec0bafbf6f5ab612`.
 
 ## 2. Cobertura comportamental
 
@@ -73,7 +87,8 @@ Releases.
 - confirmar que a GUI continua responsiva e mostra progresso/trechos;
 - confirmar CUDA na RTX 5070 e executar o artefato CPU para validar fallback;
 - editar a fonte, conferir a prévia, copiar e salvar sem sobrescrita silenciosa;
-- abrir os executáveis Windows/Linux e executar `--self-check`;
+- instalar o Windows pela Microsoft Store após a certificação e executar `--self-check-output`;
+- abrir o executável Linux da release e executar `--self-check`;
 - transcrever um M4A real, pois a regressão local desta versão usou MP3.
 
 O modelo real não é baixado no CI. Essa aceitação permanece opt-in para evitar custo, tráfego e uso
