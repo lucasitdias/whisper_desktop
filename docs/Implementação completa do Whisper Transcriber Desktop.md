@@ -5,7 +5,8 @@
 - Aplicação desktop em Python 3.11 com PySide6, OpenAI Whisper `turbo`, idioma `pt` e processamento assíncrono por `QThread`.
 - Dependências gerenciadas por `pyproject.toml`, `.python-version` e `uv.lock`.
 - Ambiente local com `openai-whisper==20250625` e PyTorch 2.12.1/CUDA 13.0, compatível com a RTX 5070 e com fallback para CPU.
-- Repositório privado `lucasitdias/whisper_desktop`, com documentação mantida em `docs/`.
+- Repositório privado `lucasitdias/whisper_desktop`, com `README.md` na raiz e especificações em
+  `docs/`.
 
 Referências: [Whisper](https://github.com/openai/whisper), [PyTorch](https://pytorch.org/get-started/previous-versions/) e [uv](https://docs.astral.sh/uv/guides/projects/).
 
@@ -30,9 +31,14 @@ Referências: [Whisper](https://github.com/openai/whisper), [PyTorch](https://py
 ## Build, instalador e entrega
 
 - `uv run build.py` gera o executável portátil `--onefile` da plataforma atual.
-- `uv run build.py --installer` gera, no Windows, um diretório PyInstaller com CUDA e um instalador Inno Setup completo.
+- `uv run build.py --msix` gera, no Windows, o pacote CUDA destinado à Microsoft Store.
+- `uv run build.py --installer` gera um instalador Inno Setup sem Authenticode apenas para testes
+  internos.
 - Todos os builds usam `--windowed`, ícone próprio, FFmpeg incorporado, `--collect-all whisper` e `--collect-all torch`.
-- Builds por tag `v*` usam PyTorch CPU para reduzir os artefatos publicados.
+- Builds por tag `v*` usam PyTorch CPU e publicam o Linux x86-64, `SHA256SUMS.txt`, um atalho para
+  a Microsoft Store e os arquivos-fonte do GitHub.
+- A versão Windows pública é validada, assinada e distribuída pela
+  [Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG).
 - O modelo `turbo` não é incorporado e é baixado na primeira transcrição.
 - `.venv`, modelos, áudios, FFmpeg baixado, `build/`, `dist/` e caches permanecem ignorados; `uv.lock` é versionado.
 - Commits e mensagens de entrega usam português do Brasil; não há implantação Vercel para esta aplicação desktop.
@@ -48,4 +54,6 @@ Referências: [FFmpeg](https://ffmpeg.org/download.html), [BtbN FFmpeg Builds](h
 - O CI não baixa o modelo; a inferência real é uma aceitação local opt-in com áudio do usuário.
 - O aceite inclui GUI responsiva, transcrição MP3/M4A, CUDA na RTX 5070, fallback CPU e exportação Markdown.
 
-Premissas: Windows/Linux x86_64; documentos em `docs/`; nenhuma tag criada automaticamente; repositório privado sem licença própria até decisão posterior e com avisos de terceiros.
+Premissas: Windows/Linux x86_64; `README.md` na raiz; especificações e avisos de terceiros em
+`docs/`; tags de release acionadas manualmente; repositório privado sem licença própria até decisão
+posterior.

@@ -26,8 +26,9 @@ TranscriberWorker (QThread)
 - `app/core/exporter.py`: Markdown e escrita UTF-8 atômica.
 - `app/ui/main_window.py`: seleção, execução, editor, prévia, cópia e salvamento.
 - `app/ui/styles.py`: tokens e folha QSS.
-- `build.py`: FFmpeg, PyInstaller, autoverificação JSON e orquestração do Inno Setup.
-- `installer/WhisperTranscriber.iss`: instalação Windows por usuário, atalhos e desinstalador.
+- `build.py`: FFmpeg, PyInstaller, autoverificação JSON, MSIX da Store e Inno Setup interno.
+- `store/AppxManifest.xml.in`: identidade MSIX reservada e capacidade `runFullTrust`.
+- `installer/WhisperTranscriber.iss`: instalação Windows interna, atalhos e desinstalador.
 
 ## 3. Contratos
 
@@ -71,12 +72,15 @@ duração decodificada, último timestamp de fala, confiança média e quantidad
 
 ## 6. Empacotamento
 
-O PyInstaller recebe `--onefile`, `--windowed`, `--add-binary`, `--collect-all whisper` e
-`--collect-all torch`. O build deve ser executado separadamente em Windows e Linux; não existe
-cross-compilation. As tags `v*` acionam a matriz de release CPU.
+O PyInstaller recebe `--windowed`, `--add-binary`, `--collect-all whisper` e `--collect-all torch`.
+O Linux portátil usa `--onefile`; o MSIX Windows usa `--onedir` para manter DLLs CUDA junto ao
+executável. O build deve ser executado separadamente em Windows e Linux; não existe
+cross-compilation. Tags `v*` publicam o executável Linux CPU, checksum, atalho da Store e os
+arquivos-fonte gerados pelo GitHub.
 
-Para o instalador Windows CUDA, o PyInstaller usa `--onedir`: as DLLs da GPU permanecem ao lado do
-executável e o Inno Setup compacta todo o diretório em um instalador único. O aplicativo empacotado
-é executado com `--self-check-output` antes da compactação, pois builds `--windowed` não possuem
-console. O bootstrap substitui `stdout` e `stderr` ausentes por fluxos graváveis, inclusive para o
-progresso de download do Whisper.
+No canal oficial Windows, o diretório PyInstaller é empacotado como MSIX com a identidade reservada
+no Partner Center. A Microsoft valida, assina e distribui o pacote pela Store. O Inno Setup pode
+compactar o mesmo diretório para testes internos, mas não é publicado sem Authenticode. O aplicativo
+empacotado é executado com `--self-check-output` antes da compactação, pois builds `--windowed` não
+possuem console. O bootstrap substitui `stdout` e `stderr` ausentes por fluxos graváveis, inclusive
+para o progresso de download do Whisper.

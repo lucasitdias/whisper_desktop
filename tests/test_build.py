@@ -25,7 +25,7 @@ def test_find_makeappx_usa_caminho_configurado(monkeypatch, tmp_path: Path):
 
 def test_msix_version_reserva_quarto_campo_para_store():
     assert build.msix_version("2.7.15") == "2.7.15.0"
-    assert build.msix_version("0.2.1") == "1.2.1.0"
+    assert build.msix_version("0.2.2") == "1.2.2.0"
 
 
 @pytest.mark.parametrize("version", ["1.beta.0", "1.2.3.4", "65536.1"])

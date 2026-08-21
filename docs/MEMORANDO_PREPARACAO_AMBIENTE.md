@@ -49,14 +49,18 @@ cache local. O modelo `turbo` é baixado na primeira transcrição.
 uv run ruff check .
 uv run python -m pytest
 uv run build.py
+uv run build.py --msix
 uv run build.py --installer
 ```
 
-O build local incorpora o Torch/CUDA do ambiente. O GitHub Actions cria releases CPU portáteis em
-tags `v*`. O comando `--installer` é exclusivo do Windows e requer Inno Setup 6 ou 7; ele gera um
-pacote por usuário em `dist/installer/WhisperTranscriber-Setup-Windows-x64.exe`. Antes da
-compactação, o script valida CUDA quando a política do Windows permite executar o binário local;
-se o Smart App Control o bloquear, a validação deve ser repetida após a instalação.
+O build local incorpora o Torch/CUDA do ambiente. No Windows, `--msix` requer o Windows SDK e
+gera o pacote destinado ao Partner Center; a instalação pública ocorre pela
+[Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG). O GitHub Actions publica o
+executável Linux CPU, checksum, atalho da Store e arquivos-fonte em tags `v*`.
+
+O comando `--installer` requer Inno Setup 6 ou 7 e gera um pacote interno por usuário em
+`dist/installer/WhisperTranscriber-Setup-Windows-x64.exe`. Sem Authenticode, ele pode ser bloqueado
+pelo Smart App Control e não deve substituir o MSIX assinado da Store.
 
 ## 5. Diagnóstico
 
@@ -70,3 +74,4 @@ se o Smart App Control o bloquear, a validação deve ser repetida após a insta
 | `NoneType` sem atributo `write` | Atualize para a versão 0.1.1 ou posterior; o bootstrap cria fluxos seguros em builds sem console. |
 | `WinError 4551` | O Smart App Control bloqueou um binário sem assinatura/reputação. Use um certificado Authenticode confiável; não desative a proteção. |
 | Inno Setup ausente | Instale uma versão oficial 6/7 e repita `uv run build.py --installer`. |
+| MakeAppx ausente | Instale o Windows SDK ou defina `MAKEAPPX_PATH` e repita `uv run build.py --msix`. |
