@@ -1,60 +1,96 @@
 # Implementação completa do Whisper Transcriber Desktop
 
-## Resumo
+## Status da entrega
 
-- Aplicação desktop em Python 3.11 com PySide6, OpenAI Whisper `turbo`, idioma `pt` e processamento assíncrono por `QThread`.
-- Dependências gerenciadas por `pyproject.toml`, `.python-version` e `uv.lock`.
-- Ambiente local com `openai-whisper==20250625` e PyTorch 2.12.1/CUDA 13.0, compatível com a RTX 5070 e com fallback para CPU.
-- Repositório privado `lucasitdias/whisper_desktop`, com `README.md` na raiz e especificações em
-  `docs/`.
+A implementação prevista foi concluída e publicada na
+[release v0.2.1](https://github.com/lucasitdias/whisper_desktop/releases/tag/v0.2.1). O código da
+release corresponde ao commit `7fe798c622e8a47c029edf529866268be9934ab8` na `main`.
 
-Referências: [Whisper](https://github.com/openai/whisper), [PyTorch](https://pytorch.org/get-started/previous-versions/) e [uv](https://docs.astral.sh/uv/guides/projects/).
+## Funcionalidades entregues
 
-## Arquitetura e interfaces
+- Python 3.11, PySide6 e tema escuro High-DPI;
+- OpenAI Whisper `turbo`, idioma `pt` e tarefa `transcribe`;
+- worker `QThread` com status, progresso, segmentos, conclusão, falha e cancelamento;
+- MP3/M4A por seletor ou drag-and-drop;
+- cancelamento cooperativo sem `terminate()` e sem resultado parcial;
+- detecção de NVIDIA CUDA, AMD ROCm, Intel XPU e CPU conforme o runtime PyTorch instalado;
+- exibição do dispositivo real e fallback por indisponibilidade ou falta de memória;
+- FFmpeg 8.1.2 estático, URL imutável, SHA-256 e extração restrita;
+- `beam_size=5`, `best_of=5`, contexto anterior e timestamps por palavra;
+- métricas de cobertura, última fala e confiança estimada;
+- Markdown editável com prévia sincronizada, cópia e salvamento atômico;
+- autodiagnóstico por console ou JSON;
+- instaladores Windows NVIDIA/CPU, portáteis Windows/Linux e DEB Linux;
+- MSIX com identidade reservada para submissão à Microsoft Store;
+- CI Windows/Linux e publicação automática por tag.
 
-- Estrutura modular em `app/core`, `app/ui`, `assets`, `tests` e `.github/workflows`.
-- `main.py` inicializa o Qt, tema, ícone e expõe `--self-check` e `--self-check-output`.
-- `FFmpegFinder` resolve recursos PyInstaller, checkout, `PATH` e cache verificado, nessa ordem.
-- Windows e Linux x86_64 usam FFmpeg estático da BtbN, com URL imutável e SHA-256 fixado.
-- `TranscriberWorker(QThread)` detecta CUDA/ROCm/XPU/CPU, mostra a GPU real, usa FP16/FP32, emite sinais de status, progresso, segmentos, conclusão e falha, e faz fallback por falta de memória do acelerador.
-- `MarkdownExporter` oferece renderização pura e escrita UTF-8 atômica, sem expor caminhos absolutos.
+## Dependências e versões
 
-## Interface e experiência
+| Componente | Versão/perfil |
+| --- | --- |
+| Python | `>=3.11,<3.12` |
+| OpenAI Whisper | `20250625` |
+| PyTorch | `2.12.1` |
+| Ambiente padrão | CUDA 13.0 |
+| PySide6 | `>=6.8,<7` |
+| PyInstaller | `>=6.16,<7` |
+| FFmpeg | `8.1.2-34-g9b6c8969e0` |
+| Gerenciador | `uv` + `uv.lock` |
 
-- Seleção única de `.mp3` ou `.m4a` por diálogo ou drag-and-drop, sem distinção entre maiúsculas e minúsculas.
-- Tema escuro, estados, botões, barra de progresso e scrollbars de acordo com o design system.
-- Dispositivo, arquivo, progresso e log exibidos em pt-BR.
-- Processamento não bloqueante e proteção contra fechamento enquanto a thread estiver ativa.
-- Abas “Markdown” editável e “Visualização” sincronizada.
-- Ações “Copiar Markdown” e “Salvar como”, sem salvamento automático.
+CUDA, ROCm, XPU e CPU são distribuições separadas do PyTorch. A release v0.2.1 publica NVIDIA
+CUDA 13 e CPU; ROCm/XPU permanecem suportados pelo código quando o ambiente é construído com a
+wheel correspondente.
 
-## Build, instalador e entrega
+## Artefatos publicados
 
-- `uv run build.py` gera o executável portátil `--onefile` da plataforma atual.
-- `uv run build.py --msix` gera, no Windows, o pacote CUDA destinado à Microsoft Store.
-- `uv run build.py --installer` gera o instalador Inno Setup NVIDIA CUDA 13; `--installer-cpu` gera
-  a variante CPU. As duas são publicadas como downloads offline distintos.
-- Todos os builds usam `--windowed`, ícone próprio, FFmpeg incorporado, `--collect-all whisper` e `--collect-all torch`.
-- Builds por tag `v*` publicam Windows NVIDIA CUDA 13, Windows CPU, Linux CPU, checksums separados,
-  um atalho para a Microsoft Store e os arquivos-fonte do GitHub. Cada instalador é construído e
-  autoverificado no ambiente correspondente.
-- A versão Windows pública é validada, assinada e distribuída pela
-  [Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG).
-- O modelo `turbo` não é incorporado e é baixado na primeira transcrição.
-- `.venv`, modelos, áudios, FFmpeg baixado, `build/`, `dist/` e caches permanecem ignorados; `uv.lock` é versionado.
-- Commits e mensagens de entrega usam português do Brasil; não há implantação Vercel para esta aplicação desktop.
+| Arquivo | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `WhisperTranscriber-Setup-Windows-x64.exe` | 1.798.357.601 | `88d2739535156d679f36afdae5a2187b671ddc76416080c9b62d20dd9124fbbd` |
+| `WhisperTranscriber-Setup-Windows-x64-CPU.exe` | 220.426.772 | `6b00c4d26a8d0686511f51090fb43e36074a327ebd039ca10f982935ae83df96` |
+| `WhisperTranscriber-Windows-x64.exe` | 317.271.727 | `4824f87090e76b9f6e1800f005224ab44b80db91cd78f5c18807e4a5b8b7a0f5` |
+| `WhisperTranscriber-Setup-Linux-x64.deb` | 612.959.506 | `9161ae8e30a9da0fffe62876d2a7560697ed8891f9de8c902c8cf6f85061e2db` |
+| `WhisperTranscriber-Linux-x64` | 630.137.840 | `5b49c278a2663d46826afb7a8ad21ff2fb135fc251c4e1a4c4fc32705534f0ed` |
 
-Referências: [FFmpeg](https://ffmpeg.org/download.html), [BtbN FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds), [PyInstaller](https://pyinstaller.org/en/stable/usage.html) e [Inno Setup](https://jrsoftware.org/isinfo.php).
+Também foram publicados três manifestos SHA-256, atalho da Microsoft Store e arquivos-fonte
+ZIP/TAR.GZ.
 
-## Testes e critérios de aceite
+## Validação concluída
 
-- Testes do FFmpeg cobrem precedência, checksum, extração segura, cache, `PATH` e plataforma.
-- Testes do exportador cobrem Unicode, metadados, duração, timestamps, vazio e escrita atômica.
-- Testes do worker cobrem CUDA, CPU, falta de VRAM, progresso, segmentos, download e sinais Qt.
-- Testes de GUI cobrem seleção, drag-and-drop, estados, thread, abas, edição, cópia, salvamento e mensagens.
-- O CI não baixa o modelo; a inferência real é uma aceitação local opt-in com áudio do usuário.
-- O aceite inclui GUI responsiva, transcrição MP3/M4A, CUDA na RTX 5070, fallback CPU e exportação Markdown.
+- Ruff aprovado;
+- 55 testes aprovados;
+- autodiagnóstico de fonte e empacotados aprovado;
+- instaladores NVIDIA CUDA e CPU instalados, executados e removidos em runners Windows limpos;
+- DEB instalado, executado e removido em runner Linux limpo;
+- portáteis Windows/Linux autoverificados;
+- nove anexos baixados depois da publicação;
+- cinco hashes grandes recalculados e comparados com os manifestos da release;
+- workflow final: <https://github.com/lucasitdias/whisper_desktop/actions/runs/32487388099>.
 
-Premissas: Windows/Linux x86_64; `README.md` na raiz; especificações e avisos de terceiros em
-`docs/`; tags de release acionadas manualmente; repositório privado sem licença própria até decisão
-posterior.
+## Decisões de distribuição
+
+- Aplicação, runtime PyTorch, Whisper e FFmpeg ficam nos pacotes offline.
+- O modelo `turbo` é baixado no primeiro uso e armazenado no cache da aplicação.
+- A variante NVIDIA é o download principal no Windows; a variante CPU é a alternativa universal.
+- Linux v0.2.1 usa CPU para maximizar compatibilidade entre máquinas Debian/Ubuntu x86-64.
+- O MSIX não é oferecido diretamente: ele é enviado ao Partner Center e só deve ser adquirido
+  depois que a Microsoft validar e assinar o pacote.
+- Instaladores GitHub sem Authenticode podem ser bloqueados pelo Smart App Control. A proteção do
+  Windows não deve ser desativada.
+
+## Limites assumidos
+
+- sem diarização, tradução, microfone ou lote;
+- somente MP3/M4A e um arquivo por vez;
+- Windows/Linux x86-64; sem macOS/ARM;
+- nenhum ASR garante fidelidade literal para todo áudio;
+- publicação/aquisição na Store depende do processo externo da Microsoft.
+
+## Referências
+
+- [OpenAI Whisper](https://github.com/openai/whisper)
+- [PyTorch](https://pytorch.org/get-started/previous-versions/)
+- [uv](https://docs.astral.sh/uv/guides/projects/)
+- [FFmpeg](https://ffmpeg.org/download.html)
+- [BtbN FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds)
+- [PyInstaller](https://pyinstaller.org/en/stable/usage.html)
+- [Inno Setup](https://jrsoftware.org/isinfo.php)
