@@ -19,6 +19,8 @@ voz e entrevistas em Português do Brasil.
 | RF07 | Markdown | Produzir metadados, texto integral e timestamps. |
 | RF08 | Resultado | Permitir editar, visualizar, copiar e salvar como `.md`. |
 | RF09 | Segurança de saída | Não sobrescrever sem confirmação e gravar de forma atômica. |
+| RF10 | Cancelamento | Permitir interromper com segurança, sem salvar resultado parcial. |
+| RF11 | Integridade | Exibir duração processada, cobertura, última fala e confiança estimada. |
 
 ## 3. Requisitos não funcionais
 

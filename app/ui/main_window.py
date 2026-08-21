@@ -103,6 +103,7 @@ class MainWindow(QMainWindow):
         self.selected_audio: Path | None = None
         self.worker: TranscriberWorker | None = None
         self._transcription_failed = False
+        self._transcription_cancelled = False
         self.setWindowTitle("Whisper Transcriber Desktop")
         self.resize(1080, 780)
         self.setMinimumSize(820, 640)
@@ -141,6 +142,10 @@ class MainWindow(QMainWindow):
         self.transcribe_button.setObjectName("primaryButton")
         self.transcribe_button.setEnabled(False)
         self.transcribe_button.clicked.connect(self.start_transcription)
+        self.cancel_button = QPushButton("Cancelar Transcrição")
+        self.cancel_button.setObjectName("dangerButton")
+        self.cancel_button.setEnabled(False)
+        self.cancel_button.clicked.connect(self.cancel_transcription)
         self.copy_button = QPushButton("Copiar Markdown")
         self.copy_button.setObjectName("secondaryButton")
         self.copy_button.setEnabled(False)
@@ -150,6 +155,7 @@ class MainWindow(QMainWindow):
         self.save_button.setEnabled(False)
         self.save_button.clicked.connect(self.save_markdown)
         actions.addWidget(self.transcribe_button)
+        actions.addWidget(self.cancel_button)
         actions.addStretch()
         actions.addWidget(self.copy_button)
         actions.addWidget(self.save_button)
@@ -162,6 +168,12 @@ class MainWindow(QMainWindow):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         root.addWidget(self.progress_bar)
+        self.coverage_label = QLabel(
+            "Após concluir, a cobertura do áudio e a confiança estimada aparecerão aqui."
+        )
+        self.coverage_label.setObjectName("mutedLabel")
+        self.coverage_label.setWordWrap(True)
+        root.addWidget(self.coverage_label)
 
         self.log_viewer = QPlainTextEdit()
         self.log_viewer.setObjectName("logViewer")
@@ -188,6 +200,8 @@ class MainWindow(QMainWindow):
         self.device_label.setText(TranscriberWorker.device_description())
 
     def choose_audio(self) -> None:
+        if self.worker is not None:
+            return
         path, _ = QFileDialog.getOpenFileName(
             self,
             "Selecionar arquivo de áudio",
@@ -198,6 +212,8 @@ class MainWindow(QMainWindow):
             self.set_selected_file(path)
 
     def set_selected_file(self, path: str) -> bool:
+        if self.worker is not None:
+            return False
         candidate = Path(path)
         if not candidate.is_file() or not DropZoneWidget.is_supported(candidate):
             QMessageBox.warning(self, "Arquivo inválido", "Selecione um arquivo MP3 ou M4A válido.")
@@ -205,6 +221,9 @@ class MainWindow(QMainWindow):
         self.selected_audio = candidate.resolve()
         self.drop_zone.set_file(self.selected_audio)
         self.status_label.setText("Arquivo pronto para transcrição.")
+        self.coverage_label.setText(
+            "Após concluir, a cobertura do áudio e a confiança estimada aparecerão aqui."
+        )
         self.transcribe_button.setEnabled(True)
         return True
 
@@ -217,16 +236,31 @@ class MainWindow(QMainWindow):
         self.copy_button.setEnabled(False)
         self.save_button.setEnabled(False)
         self.transcribe_button.setEnabled(False)
+        self.cancel_button.setEnabled(True)
+        self.drop_zone.setEnabled(False)
         self._transcription_failed = False
+        self._transcription_cancelled = False
+        self.coverage_label.setText("Cobertura em análise durante a transcrição...")
         self.worker = TranscriberWorker(self.selected_audio, self)
         self.worker.status_changed.connect(self._handle_status)
         self.worker.progress_changed.connect(self._handle_progress)
         self.worker.segment_decoded.connect(self._handle_segment)
         self.worker.completed.connect(self._handle_result)
         self.worker.failed.connect(self._handle_failure)
+        self.worker.cancelled.connect(self._handle_cancelled)
         self.worker.finished.connect(self._thread_finished)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
+
+    def cancel_transcription(self) -> None:
+        if self.worker is None or not self.worker.isRunning():
+            return
+        self.cancel_button.setEnabled(False)
+        self.status_label.setText(
+            "Cancelamento solicitado; finalizando a etapa atual com segurança..."
+        )
+        self.log_viewer.appendPlainText(self.status_label.text())
+        self.worker.cancel()
 
     def _handle_status(self, message: str) -> None:
         self.status_label.setText(message)
@@ -249,6 +283,18 @@ class MainWindow(QMainWindow):
         self.copy_button.setEnabled(True)
         self.save_button.setEnabled(True)
         self.tabs.setCurrentIndex(0)
+        duration = MarkdownExporter.format_timestamp(result.duration_seconds)
+        confidence = (
+            f" Confiança média estimada: {result.average_word_confidence * 100:.1f}% "
+            f"em {result.word_count} palavras; {result.low_confidence_word_count} abaixo de 50%."
+            if result.average_word_confidence is not None
+            else " Confiança por palavra indisponível para este resultado."
+        )
+        self.coverage_label.setText(
+            f"Cobertura: {result.processing_coverage_percent:.0f}% do áudio processado "
+            f"({duration}).{confidence}"
+        )
+        self.log_viewer.appendPlainText(self.coverage_label.text())
 
     def _handle_failure(self, message: str) -> None:
         self._transcription_failed = True
@@ -257,10 +303,22 @@ class MainWindow(QMainWindow):
         self.log_viewer.appendPlainText(message)
         QMessageBox.critical(self, "Falha na transcrição", message)
 
+    def _handle_cancelled(self, message: str) -> None:
+        self._transcription_cancelled = True
+        self._handle_progress(0)
+        self.status_label.setText(message)
+        self.coverage_label.setText("Transcrição interrompida: a cobertura não foi concluída.")
+
     def _thread_finished(self) -> None:
         self.worker = None
+        self.cancel_button.setEnabled(False)
+        self.drop_zone.setEnabled(True)
         self.transcribe_button.setEnabled(self.selected_audio is not None)
-        if not self._transcription_failed and self.source_editor.toPlainText():
+        if (
+            not self._transcription_failed
+            and not self._transcription_cancelled
+            and self.source_editor.toPlainText()
+        ):
             self._handle_progress(100)
 
     def update_preview(self) -> None:
@@ -310,7 +368,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 "Transcrição em andamento",
-                "Aguarde a conclusão da transcrição antes de fechar o aplicativo.",
+                "Cancele a transcrição e aguarde a confirmação antes de fechar o aplicativo.",
             )
             event.ignore()
             return

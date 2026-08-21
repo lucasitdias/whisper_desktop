@@ -40,6 +40,8 @@
   `#252533` e borda `#6366F1`.
 - Botão primário: fundo índigo, texto branco, raio 6 px e padding 10/20 px.
 - Botões secundários: fundo transparente, borda `#374151` e hover `#2C2C35`.
+- Botão de cancelamento: fundo transparente, borda `#EF4444` e texto `#FCA5A5`; fica habilitado
+  somente durante o processamento.
 - Barra de progresso: trilho `#18181C`, preenchimento índigo e estado indeterminado no download.
 - Editor/prévia: fundo `#18181C`, texto `#F3F4F6`, borda `#2C2C35` e raio 6 px.
 - Scrollbar: largura 8 px, handle `#2C2C35`, hover `#4B5563`.

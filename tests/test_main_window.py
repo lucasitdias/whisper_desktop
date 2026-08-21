@@ -51,6 +51,7 @@ def test_start_da_thread_nao_bloqueia_interface(qtbot, monkeypatch, tmp_path: Pa
         segment_decoded = Signal(str)
         completed = Signal(object)
         failed = Signal(str)
+        cancelled = Signal(str)
 
         def __init__(self, _path, parent=None):
             super().__init__(parent)
@@ -61,6 +62,9 @@ def test_start_da_thread_nao_bloqueia_interface(qtbot, monkeypatch, tmp_path: Pa
 
         def run(self):
             self.msleep(80)
+
+        def cancel(self):
+            self.requestInterruption()
 
     monkeypatch.setattr("app.ui.main_window.TranscriberWorker", SlowWorker)
     window = MainWindow()
@@ -75,3 +79,49 @@ def test_extensoes_aceitas():
     assert DropZoneWidget.is_supported("arquivo.mp3")
     assert DropZoneWidget.is_supported("arquivo.M4A")
     assert not DropZoneWidget.is_supported("arquivo.wav")
+
+
+def test_botao_cancela_transcricao_e_restaura_interface(qtbot, monkeypatch, tmp_path: Path):
+    audio = tmp_path / "audio.mp3"
+    audio.write_bytes(b"audio")
+
+    class CancellableWorker(QThread):
+        status_changed = Signal(str)
+        progress_changed = Signal(int)
+        segment_decoded = Signal(str)
+        completed = Signal(object)
+        failed = Signal(str)
+        cancelled = Signal(str)
+
+        def __init__(self, _path, parent=None):
+            super().__init__(parent)
+
+        @staticmethod
+        def device_description():
+            return "CPU de teste"
+
+        def run(self):
+            while not self.isInterruptionRequested():
+                self.msleep(5)
+
+        def cancel(self):
+            self.requestInterruption()
+            self.cancelled.emit("Transcrição cancelada para teste.")
+
+    monkeypatch.setattr("app.ui.main_window.TranscriberWorker", CancellableWorker)
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.set_selected_file(str(audio))
+    window.start_transcription()
+
+    assert window.cancel_button.isEnabled()
+    assert not window.transcribe_button.isEnabled()
+    assert not window.drop_zone.isEnabled()
+
+    window.cancel_button.click()
+    qtbot.waitUntil(lambda: window.worker is None, timeout=1000)
+
+    assert "cancelada" in window.status_label.text().lower()
+    assert not window.cancel_button.isEnabled()
+    assert window.transcribe_button.isEnabled()
+    assert window.drop_zone.isEnabled()

@@ -37,11 +37,12 @@ TranscriberWorker (QThread)
 - `progress_changed(int)`, usando `-1` para estado indeterminado;
 - `segment_decoded(str)`;
 - `completed(TranscriptionResult)`;
-- `failed(str)`.
+- `failed(str)`;
+- `cancelled(str)`.
 
-`TranscriptionResult` contém nome de origem, duração, texto, segmentos, modelo, idioma, dispositivo
-e data com fuso. `MarkdownExporter.render()` é puro e `save()` usa arquivo temporário no mesmo
-volume seguido de substituição atômica.
+`TranscriptionResult` contém nome de origem, duração total/processada, texto, segmentos, palavras de
+baixa confiança, modelo, idioma, dispositivo e data com fuso. `MarkdownExporter.render()` é puro e
+`save()` usa arquivo temporário no mesmo volume seguido de substituição atômica.
 
 ## 4. FFmpeg
 
@@ -60,6 +61,13 @@ Somente o membro `bin/ffmpeg(.exe)` é lido do arquivo; não há `extractall` ne
 O áudio é decodificado uma vez com `whisper.load_audio`. A duração deriva da quantidade de amostras.
 O modelo usa FP16 em CUDA e FP32 em CPU. A saída incremental do Whisper fornece trechos e timestamps
 para o progresso. Em erro de memória CUDA, o cache é liberado e a operação reinicia em CPU.
+O cancelamento usa um evento thread-safe e `requestInterruption()`. Pontos seguros verificam a
+solicitação entre FFmpeg, decodificação, carregamento e inferência; durante a inferência, a saída de
+segmentos interrompe cooperativamente o loop. Não são usados `terminate()` nem resultados parciais.
+
+`word_timestamps=True` fornece probabilidades por palavra. O resultado registra cobertura da
+duração decodificada, último timestamp de fala, confiança média e quantidade de palavras abaixo de
+50%. Essas métricas ajudam a revisão, mas não constituem garantia de exatidão linguística.
 
 ## 6. Empacotamento
 

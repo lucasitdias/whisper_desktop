@@ -2,19 +2,27 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from app.core.exporter import MarkdownExporter
-from app.core.transcriber import TranscriptionResult, TranscriptionSegment
+from app.core.transcriber import (
+    TranscriptionResult,
+    TranscriptionSegment,
+    TranscriptionWord,
+)
 
 
 def make_result(**overrides):
     values = {
         "source_name": "reunião.m4a",
         "duration_seconds": 3661.4,
+        "processed_seconds": 3661.4,
         "text": "Olá, mundo.",
         "segments": (TranscriptionSegment(0, 5.2, "Olá, mundo."),),
         "model_name": "turbo",
         "language": "pt",
         "device": "cuda",
         "transcribed_at": datetime(2026, 8, 18, 10, 30, tzinfo=UTC),
+        "average_word_confidence": 0.937,
+        "word_count": 2,
+        "low_confidence_words": (TranscriptionWord(4.2, 4.8, "mundo", 0.42),),
     }
     values.update(overrides)
     return TranscriptionResult(**values)
@@ -26,6 +34,10 @@ def test_renderiza_metadados_unicode_e_timestamp_superior_a_uma_hora():
     assert "`reunião.m4a`" in markdown
     assert "01:01:01" in markdown
     assert "GPU (CUDA)" in markdown
+    assert "Cobertura do Processamento:** 100%" in markdown
+    assert "Confiança Média Estimada:** 93.7%" in markdown
+    assert "não garante fidelidade palavra por palavra" in markdown
+    assert "`mundo` — confiança 42.0%" in markdown
     assert "**[00:00:00 -> 00:00:05]** Olá, mundo." in markdown
 
 
