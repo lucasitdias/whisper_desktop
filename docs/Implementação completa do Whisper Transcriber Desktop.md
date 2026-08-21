@@ -16,7 +16,7 @@ Referências: [Whisper](https://github.com/openai/whisper), [PyTorch](https://py
 - `main.py` inicializa o Qt, tema, ícone e expõe `--self-check` e `--self-check-output`.
 - `FFmpegFinder` resolve recursos PyInstaller, checkout, `PATH` e cache verificado, nessa ordem.
 - Windows e Linux x86_64 usam FFmpeg estático da BtbN, com URL imutável e SHA-256 fixado.
-- `TranscriberWorker(QThread)` detecta CUDA/CPU, usa FP16/FP32, emite sinais de status, progresso, segmentos, conclusão e falha, e faz fallback por falta de VRAM.
+- `TranscriberWorker(QThread)` detecta CUDA/ROCm/XPU/CPU, mostra a GPU real, usa FP16/FP32, emite sinais de status, progresso, segmentos, conclusão e falha, e faz fallback por falta de memória do acelerador.
 - `MarkdownExporter` oferece renderização pura e escrita UTF-8 atômica, sem expor caminhos absolutos.
 
 ## Interface e experiência
@@ -32,11 +32,12 @@ Referências: [Whisper](https://github.com/openai/whisper), [PyTorch](https://py
 
 - `uv run build.py` gera o executável portátil `--onefile` da plataforma atual.
 - `uv run build.py --msix` gera, no Windows, o pacote CUDA destinado à Microsoft Store.
-- `uv run build.py --installer` gera um instalador Inno Setup sem Authenticode apenas para testes
-  internos.
+- `uv run build.py --installer` gera o instalador Inno Setup NVIDIA CUDA 13; `--installer-cpu` gera
+  a variante CPU. As duas são publicadas como downloads offline distintos.
 - Todos os builds usam `--windowed`, ícone próprio, FFmpeg incorporado, `--collect-all whisper` e `--collect-all torch`.
-- Builds por tag `v*` usam PyTorch CPU e publicam o Linux x86-64, `SHA256SUMS.txt`, um atalho para
-  a Microsoft Store e os arquivos-fonte do GitHub.
+- Builds por tag `v*` publicam Windows NVIDIA CUDA 13, Windows CPU, Linux CPU, checksums separados,
+  um atalho para a Microsoft Store e os arquivos-fonte do GitHub. Cada instalador é construído e
+  autoverificado no ambiente correspondente.
 - A versão Windows pública é validada, assinada e distribuída pela
   [Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG).
 - O modelo `turbo` não é incorporado e é baixado na primeira transcrição.

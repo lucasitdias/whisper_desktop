@@ -1,9 +1,13 @@
 # Publicação na Microsoft Store
 
-Este projeto distribui a versão Windows pela Microsoft Store. Esse é o canal
+Este projeto distribui a versão Windows preferencialmente pela Microsoft Store. Esse é o canal
 recomendado porque a Microsoft valida e assina o pacote MSIX durante a
 certificação. O arquivo MSIX gerado localmente é destinado ao Partner Center e
 não deve ser oferecido como instalador direto ao usuário final.
+
+O GitHub Releases também contém instaladores offline NVIDIA CUDA 13 e CPU autoverificados. Eles
+incluem FFmpeg e as dependências da aplicação, mas baixam o modelo `turbo` no primeiro uso e, sem
+Authenticode, podem ser bloqueados por políticas que aceitam somente código assinado.
 
 - Página pública: <https://apps.microsoft.com/detail/9PHWS6MM59BG>
 - Releases e Linux: <https://github.com/lucasitdias/whisper_desktop/releases/latest>
@@ -49,12 +53,14 @@ git diff --check
 ```
 
 `build.py` também reabre o MSIX e verifica identidade, versão, arquitetura,
-manifesto e executável antes de concluir. A versão 0.2.2 gera
-`WhisperTranscriber-Desktop-0.2.2-Windows-x64.msix`, com versão MSIX
-`1.2.2.0`.
+manifesto e executável antes de concluir. A versão pública final 0.2.1 gera
+`WhisperTranscriber-Desktop-0.2.1-Windows-x64.msix`, com versão técnica MSIX
+`1.2.4.0`, 2.149.611.092 bytes e SHA-256
+`199DF03410371E8C22D74B75EA49AC9278D59B2504AC63FCBBF3ADCD64ADB3F9`.
 
-O pacote 0.2.2 possui 2.149.620.732 bytes e SHA-256
-`47CAF48B7B39D4CC4152624E42E0270C08CE325C3FC3CF96D6424D36BE26C1BA`.
+A versão técnica do MSIX é um contador monotônico independente da versão pública do aplicativo.
+Ela foi avançada para substituir com segurança os pacotes de rascunho anteriores do Partner
+Center; isso não cria uma versão, tag ou release `0.2.4`.
 
 O Windows App Certification Kit executou os 15 testes estáticos aplicáveis com
 resultado `Pass`. O agregador do WACK não encerrou sozinho após os testes; por
@@ -78,8 +84,8 @@ empacotado. A justificativa usada no Partner Center deve explicar:
   Store.
 - Depois da certificação, a Microsoft assina e distribui o pacote pela página do
   produto.
-- O GitHub Releases não deve publicar o executável Windows sem Authenticode.
-  Em vez disso, publica um atalho para a Store. Builds Linux podem continuar
-  sendo distribuídos diretamente com SHA-256.
+- O GitHub Releases publica instaladores Windows offline autoverificados e deixa explícita a
+  ausência de Authenticode, além do atalho para a Store. Em máquinas com Smart App Control, o
+  canal Store assinado continua obrigatório. Builds Linux são distribuídos com SHA-256.
 - O áudio e a transcrição permanecem locais; apenas o modelo Whisper é baixado
   na primeira utilização.

@@ -28,7 +28,12 @@ class MarkdownExporter:
         source_name = Path(result.source_name).name
         title = Path(source_name).stem.replace("#", "\\#")
         date = result.transcribed_at.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
-        processing = "GPU (CUDA)" if result.device == "cuda" else "CPU"
+        processing = {
+            "cuda": "GPU NVIDIA (CUDA)",
+            "rocm": "GPU AMD (ROCm)",
+            "xpu": "GPU Intel (XPU)",
+            "cpu": "CPU",
+        }.get(result.device, result.device.upper())
         coverage = result.processing_coverage_percent
         processed = cls.format_timestamp(result.processed_seconds)
         last_speech = result.last_speech_end_seconds

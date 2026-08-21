@@ -157,16 +157,67 @@ class TranscriberWorker(QThread):
 
     @staticmethod
     def detect_device() -> str:
-        return "cuda" if torch.cuda.is_available() else "cpu"
+        try:
+            if torch.cuda.is_available():
+                # O PyTorch expõe GPUs AMD/ROCm pela mesma API ``torch.cuda``.
+                return "rocm" if getattr(torch.version, "hip", None) else "cuda"
+        except (OSError, RuntimeError):
+            # Um driver instalado, porém indisponível, não deve impedir o fallback.
+            pass
+        xpu = getattr(torch, "xpu", None)
+        if xpu is not None:
+            try:
+                if xpu.is_available():
+                    return "xpu"
+            except (OSError, RuntimeError):
+                pass
+        return "cpu"
 
     @staticmethod
-    def device_description() -> str:
-        if torch.cuda.is_available():
-            try:
-                return f"GPU CUDA: {torch.cuda.get_device_name(0)}"
-            except Exception:
-                return "GPU CUDA disponível"
-        return "CPU (CUDA não disponível)"
+    def device_description(device: str | None = None) -> str:
+        device = device or TranscriberWorker.detect_device()
+        try:
+            if device == "cuda":
+                return f"GPU NVIDIA CUDA: {torch.cuda.get_device_name(0)}"
+            if device == "rocm":
+                return f"GPU AMD ROCm: {torch.cuda.get_device_name(0)}"
+            if device == "xpu":
+                return f"GPU Intel XPU: {torch.xpu.get_device_name(0)}"
+        except Exception:
+            return TranscriberWorker._processing_name(device)
+        return "CPU (aceleração por GPU não disponível)"
+
+    @staticmethod
+    def _processing_name(device: str) -> str:
+        return {
+            "cuda": "GPU NVIDIA CUDA",
+            "rocm": "GPU AMD ROCm",
+            "xpu": "GPU Intel XPU",
+            "cpu": "CPU",
+        }.get(device, device.upper())
+
+    @staticmethod
+    def runtime_description() -> str:
+        """Identifica o runtime incorporado, mesmo quando não há GPU disponível."""
+        if getattr(torch.version, "hip", None):
+            return f"AMD ROCm {torch.version.hip}"
+        if getattr(torch.version, "cuda", None):
+            return f"NVIDIA CUDA {torch.version.cuda}"
+        if getattr(torch.version, "xpu", None):
+            return f"Intel XPU {torch.version.xpu}"
+        return "CPU"
+
+    @staticmethod
+    def _torch_device(device: str) -> str:
+        # ROCm mantém compatibilidade com o nome de dispositivo ``cuda``.
+        return "cuda" if device == "rocm" else device
+
+    @staticmethod
+    def _empty_device_cache(device: str) -> None:
+        if device in {"cuda", "rocm"}:
+            torch.cuda.empty_cache()
+        elif device == "xpu":
+            torch.xpu.empty_cache()
 
     @staticmethod
     def model_cache_root() -> Path:
@@ -197,13 +248,13 @@ class TranscriberWorker(QThread):
             try:
                 raw_result = self._transcribe(audio, duration, device)
             except Exception as error:
-                if device != "cuda" or not self._is_cuda_oom(error):
+                if device == "cpu" or not self._is_accelerator_oom(error, device):
                     raise
                 self.status_changed.emit(
                     "Memória da GPU insuficiente. Reiniciando automaticamente pela CPU..."
                 )
                 self.progress_changed.emit(15)
-                torch.cuda.empty_cache()
+                self._empty_device_cache(device)
                 gc.collect()
                 self._raise_if_cancelled()
                 raw_result = self._transcribe(audio, duration, "cpu")
@@ -258,12 +309,12 @@ class TranscriberWorker(QThread):
             self.failed.emit(self._friendly_error(error))
 
     def _transcribe(self, audio: Any, duration: float, device: str) -> dict[str, Any]:
-        processing = "GPU CUDA" if device == "cuda" else "CPU"
+        processing = self.device_description(device)
         self.status_changed.emit(f"Carregando o modelo Whisper turbo em {processing}...")
         self.progress_changed.emit(-1)
         model = whisper.load_model(
             self.MODEL_NAME,
-            device=device,
+            device=self._torch_device(device),
             download_root=str(self.model_cache_root()),
         )
         try:
@@ -279,15 +330,17 @@ class TranscriberWorker(QThread):
                     language=self.LANGUAGE,
                     task="transcribe",
                     verbose=True,
-                    fp16=device == "cuda",
+                    fp16=device != "cpu",
+                    beam_size=5,
+                    best_of=5,
+                    condition_on_previous_text=True,
                     word_timestamps=True,
                 )
         finally:
             if "stream" in locals():
                 stream.flush()
             del model
-            if device == "cuda":
-                torch.cuda.empty_cache()
+            self._empty_device_cache(device)
 
     def _validate_input(self) -> None:
         if not self.audio_path.is_file():
@@ -297,7 +350,12 @@ class TranscriberWorker(QThread):
 
     @staticmethod
     def _is_cuda_oom(error: Exception) -> bool:
-        oom_type = getattr(torch.cuda, "OutOfMemoryError", RuntimeError)
+        return TranscriberWorker._is_accelerator_oom(error, "cuda")
+
+    @staticmethod
+    def _is_accelerator_oom(error: Exception, device: str) -> bool:
+        backend = torch.xpu if device == "xpu" else torch.cuda
+        oom_type = getattr(backend, "OutOfMemoryError", RuntimeError)
         return isinstance(error, oom_type) or "out of memory" in str(error).lower()
 
     @staticmethod

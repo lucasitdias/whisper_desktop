@@ -197,7 +197,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
     def _update_device_label(self) -> None:
-        self.device_label.setText(TranscriberWorker.device_description())
+        self.device_label.setText(
+            f"Dispositivo ativo: {TranscriberWorker.device_description()}"
+        )
 
     def choose_audio(self) -> None:
         if self.worker is not None:
@@ -279,6 +281,9 @@ class MainWindow(QMainWindow):
 
     def _handle_result(self, result: TranscriptionResult) -> None:
         markdown = MarkdownExporter.render(result)
+        self.device_label.setText(
+            f"Dispositivo usado: {TranscriberWorker.device_description(result.device)}"
+        )
         self.source_editor.setPlainText(markdown)
         self.copy_button.setEnabled(True)
         self.save_button.setEnabled(True)

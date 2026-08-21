@@ -9,7 +9,10 @@ Markdown editável com metadados, texto integral e timestamps.
 | Plataforma | Download | Observação |
 | --- | --- | --- |
 | Windows 10/11 x64 | [Instalar pela Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG) | Canal recomendado: pacote MSIX validado e assinado pela Microsoft após a certificação. |
-| Linux x86-64 | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Use o arquivo `WhisperTranscriber-Linux-x64` e confira `SHA256SUMS.txt`. |
+| Windows 10/11 x64, NVIDIA CUDA 13 offline | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Instalador completo `WhisperTranscriber-Setup-Windows-x64.exe`; usa GPU NVIDIA compatível e recua para CPU. Confira `SHA256SUMS-Windows-NVIDIA-CUDA.txt`. |
+| Windows 10/11 x64, CPU offline | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Instalador `WhisperTranscriber-Setup-Windows-x64-CPU.exe` ou portátil `WhisperTranscriber-Windows-x64.exe`. Confira `SHA256SUMS-Windows-CPU.txt`. |
+| Debian/Ubuntu x86-64 offline | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Instale `WhisperTranscriber-Setup-Linux-x64.deb` e confira `SHA256SUMS-Linux.txt`. |
+| Linux x86-64 portátil | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Use `WhisperTranscriber-Linux-x64` e confira `SHA256SUMS-Linux.txt`. |
 | Código-fonte | [Releases do projeto](https://github.com/lucasitdias/whisper_desktop/releases) | Cada release oferece arquivos `.zip` e `.tar.gz` gerados pelo GitHub. |
 
 A release também inclui `Instalar-WhisperTranscriber-Windows.url`, que abre a página oficial do
@@ -22,7 +25,8 @@ Microsoft pode devolvê-lo com a assinatura confiável necessária para instala�
 - seleção de um MP3 ou M4A por diálogo ou arrastar e soltar;
 - processamento em `QThread`, sem bloquear a interface;
 - cancelamento cooperativo, sem encerrar a thread à força nem salvar resultado parcial;
-- CUDA/FP16 quando disponível e fallback automático para CPU/FP32, inclusive por falta de VRAM;
+- prioridade automática para um backend de GPU compatível: NVIDIA CUDA, AMD ROCm ou Intel XPU;
+- exibição do fabricante, backend e nome real da GPU usada, com fallback automático para CPU/FP32;
 - resolução e verificação automática do FFmpeg 8.1.2;
 - progresso por timestamps e exibição incremental dos trechos decodificados;
 - editor Markdown, visualização sincronizada, cópia e salvamento atômico;
@@ -53,8 +57,13 @@ uv sync --frozen
 uv run main.py
 ```
 
-O ambiente de desenvolvimento usa PyTorch 2.12.1 com CUDA 13.0. Sem GPU ou driver compatível, a
-aplicação continua funcionando em CPU. O áudio e a transcrição permanecem no computador.
+O ambiente de desenvolvimento usa PyTorch 2.12.1 com CUDA 13.0. A aplicação também reconhece
+ROCm e XPU quando executada com a variante correspondente do PyTorch. Sem backend ou driver
+compatível, continua funcionando em CPU. O áudio e a transcrição permanecem no computador.
+
+PyTorch distribui CUDA, ROCm, XPU e CPU como runtimes diferentes. Por isso, um instalador só pode
+prometer aceleração para o backend que realmente contém: CUDA para NVIDIA, ROCm para AMD no Linux
+ou XPU para Intel. A interface nunca mostra uma GPU como ativa quando a inferência está em CPU.
 
 Autoverificação sem abrir a interface nem baixar o modelo:
 
@@ -93,15 +102,39 @@ Pacote Windows para envio à Microsoft Store:
 uv run build.py --msix
 ```
 
-Instalador Windows Inno Setup para testes internos:
+Instalador Windows NVIDIA CUDA 13 completo, usado como download principal da release:
 
 ```powershell
 uv run build.py --installer
 ```
 
-O instalador Inno Setup e o executável Windows produzidos localmente não possuem Authenticode e
-podem ser bloqueados pelo Smart App Control. Eles não devem ser publicados como alternativa ao
-pacote assinado da Store, e a proteção do Windows não deve ser desativada.
+Instalador Windows CPU completo, usado como alternativa universal da release:
+
+```powershell
+uv run build.py --installer-cpu
+```
+
+Os instaladores offline incluem a aplicação, o runtime PyTorch correspondente e FFmpeg; somente o
+modelo `turbo` é baixado uma vez no primeiro uso. O instalador principal contém CUDA 13 para GPU
+NVIDIA e executa em CPU quando CUDA não está disponível. A variante `-CPU` é menor e funciona sem
+GPU. Um pacote Windows sem Authenticode confiável pode ser bloqueado pelo Smart App Control mesmo
+quando está completo. Nesse caso, use a Microsoft Store; a proteção do Windows não deve ser
+desativada.
+
+## GPU, desempenho e qualidade
+
+O programa prioriza uma GPU que o runtime instalado consiga usar e mostra o dispositivo real no
+cabeçalho. A release fornece uma variante NVIDIA CUDA e variantes CPU universais. AMD ROCm e Intel
+XPU continuam suportados pelo código quando a instalação é construída com a wheel PyTorch
+correspondente; uma wheel CUDA não usa GPU AMD/Intel. A configuração de reconhecimento é a mesma
+em todos os backends: modelo `turbo`, idioma `pt`, busca em feixe com cinco candidatos, contexto
+entre janelas e timestamps por palavra. GPU e CPU podem produzir pequenas diferenças numéricas
+(FP16 e FP32), e o tempo depende do hardware.
+
+Na validação local de 21/08/2026, a mesma amostra de 60 segundos gerou o mesmo texto, 22 segmentos,
+146 palavras e último timestamp em 59,98 s. A RTX 5070 concluiu em 13,71 s, com confiança média
+estimada de 90,83%; a CPU concluiu em 51,37 s, com 90,80%. Isso demonstra equivalência nessa
+amostra, não uma garantia absoluta para todo áudio.
 
 ## Estrutura
 

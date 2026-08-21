@@ -25,7 +25,7 @@ def test_find_makeappx_usa_caminho_configurado(monkeypatch, tmp_path: Path):
 
 def test_msix_version_reserva_quarto_campo_para_store():
     assert build.msix_version("2.7.15") == "2.7.15.0"
-    assert build.msix_version("0.2.2") == "1.2.2.0"
+    assert build.msix_version("0.2.1") == "1.2.1.0"
 
 
 @pytest.mark.parametrize("version", ["1.beta.0", "1.2.3.4", "65536.1"])
@@ -40,7 +40,7 @@ def test_render_msix_manifest_usa_identidade_da_store(tmp_path: Path):
 
     assert build.STORE_PACKAGE_NAME in content
     assert build.STORE_PUBLISHER in content
-    assert f'Version="{build.msix_version(build.__version__)}"' in content
+    assert f'Version="{build.STORE_PACKAGE_VERSION}"' in content
     assert 'Executable="WhisperTranscriber.exe"' in content
     assert 'Name="runFullTrust"' in content
 
@@ -73,7 +73,7 @@ def test_verify_msix_confere_conteudo_sem_extrair(tmp_path: Path):
     assert result == {
         "Name": build.STORE_PACKAGE_NAME,
         "Publisher": build.STORE_PUBLISHER,
-        "Version": build.msix_version(build.__version__),
+        "Version": build.STORE_PACKAGE_VERSION,
         "ProcessorArchitecture": "x64",
     }
 
@@ -85,15 +85,46 @@ def test_verify_executable_le_json_windowed(monkeypatch, tmp_path: Path):
     def fake_run(command, **_kwargs):
         output = Path(command[command.index("--self-check-output") + 1])
         output.write_text(
-            json.dumps({"status": "ok", "dispositivo": "GPU CUDA: teste"}),
+            json.dumps(
+                {
+                    "status": "ok",
+                    "dispositivo": "GPU NVIDIA CUDA: GPU de teste",
+                    "runtime_pytorch": "NVIDIA CUDA 13.0",
+                }
+            ),
             encoding="utf-8",
         )
 
     monkeypatch.setattr(build.subprocess, "run", fake_run)
 
-    result = build.verify_executable(executable, require_cuda=True)
+    result = build.verify_executable(
+        executable, require_cuda=True, require_runtime="NVIDIA CUDA"
+    )
 
     assert result["status"] == "ok"
+
+
+def test_verify_executable_rejeita_runtime_incorreto(monkeypatch, tmp_path: Path):
+    executable = tmp_path / "WhisperTranscriber.exe"
+    executable.write_bytes(b"app")
+
+    def fake_run(command, **_kwargs):
+        output = Path(command[command.index("--self-check-output") + 1])
+        output.write_text(
+            json.dumps(
+                {
+                    "status": "ok",
+                    "dispositivo": "CPU (aceleração por GPU não disponível)",
+                    "runtime_pytorch": "CPU",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(build.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="deveria conter o runtime NVIDIA CUDA"):
+        build.verify_executable(executable, require_runtime="NVIDIA CUDA")
 
 
 def test_verify_executable_rejeita_build_cpu_quando_cuda_e_obrigatoria(
@@ -133,3 +164,8 @@ def test_verify_executable_pode_continuar_se_smart_app_control_bloquear(
     )
 
     assert result["status"] == "bloqueado_politica"
+
+
+def test_nomes_dos_instaladores_separam_cuda_e_cpu():
+    assert build.INSTALLER_NAME == "WhisperTranscriber-Setup-Windows-x64.exe"
+    assert build.CPU_INSTALLER_NAME == "WhisperTranscriber-Setup-Windows-x64-CPU.exe"

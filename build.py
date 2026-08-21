@@ -19,10 +19,14 @@ from app.core.ffmpeg_finder import FFmpegFinder
 
 APP_EXECUTABLE = "WhisperTranscriber"
 INSTALLER_NAME = "WhisperTranscriber-Setup-Windows-x64.exe"
+CPU_INSTALLER_NAME = "WhisperTranscriber-Setup-Windows-x64-CPU.exe"
 STORE_PACKAGE_NAME = "WhisperTranscriber.WhisperTranscriberDesktop"
 STORE_PUBLISHER = "CN=B12A9AED-D3CC-463A-B3E5-ED71178CABF3"
 STORE_PUBLISHER_DISPLAY_NAME = "WhisperTranscriber"
 STORE_ID = "9PHWS6MM59BG"
+# A versão técnica do pacote precisa ser monotônica no Partner Center. Ela é
+# independente da versão pública 0.2.1 do aplicativo e da tag do GitHub.
+STORE_PACKAGE_VERSION = "1.2.4.0"
 MSIX_NAME = f"WhisperTranscriber-Desktop-{__version__}-Windows-x64.msix"
 
 
@@ -81,6 +85,7 @@ def verify_executable(
     executable: Path,
     *,
     require_cuda: bool = False,
+    require_runtime: str | None = None,
     allow_policy_block: bool = False,
 ) -> dict[str, str]:
     """Executa a autoverificação do artefato sem depender de uma janela de console."""
@@ -107,9 +112,18 @@ def verify_executable(
     if payload.get("status") != "ok":
         raise RuntimeError("A autoverificação do executável não retornou status ok.")
     device = str(payload.get("dispositivo", ""))
-    if require_cuda and not device.startswith("GPU CUDA"):
+    cuda_detected = device.startswith(("GPU NVIDIA CUDA", "GPU CUDA"))
+    if require_cuda and not cuda_detected:
         raise RuntimeError(f"O build deveria usar CUDA, mas detectou: {device or 'desconhecido'}")
+    runtime = str(payload.get("runtime_pytorch", ""))
+    if require_runtime and not runtime.casefold().startswith(require_runtime.casefold()):
+        raise RuntimeError(
+            f"O build deveria conter o runtime {require_runtime}, mas contém: "
+            f"{runtime or 'desconhecido'}"
+        )
     print(f"Executável verificado: {device}")
+    if runtime:
+        print(f"Runtime incorporado: {runtime}")
     return payload
 
 
@@ -187,7 +201,7 @@ def render_msix_manifest(destination: Path) -> Path:
         PACKAGE_NAME=STORE_PACKAGE_NAME,
         PUBLISHER=STORE_PUBLISHER,
         PUBLISHER_DISPLAY_NAME=STORE_PUBLISHER_DISPLAY_NAME,
-        VERSION=msix_version(__version__),
+        VERSION=STORE_PACKAGE_VERSION,
         EXECUTABLE=f"{APP_EXECUTABLE}.exe",
     )
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -306,7 +320,7 @@ def verify_msix(package: Path) -> dict[str, str]:
         expected = {
             "Name": STORE_PACKAGE_NAME,
             "Publisher": STORE_PUBLISHER,
-            "Version": msix_version(__version__),
+            "Version": STORE_PACKAGE_VERSION,
             "ProcessorArchitecture": "x64",
         }
         actual = {key: identity.get(key, "") for key in expected}
@@ -318,7 +332,9 @@ def verify_msix(package: Path) -> dict[str, str]:
     return actual
 
 
-def build_installer(executable: Path) -> Path:
+def build_installer(
+    executable: Path, *, output_name: str = INSTALLER_NAME
+) -> Path:
     """Empacota o diretório PyInstaller em um instalador Windows com desinstalador."""
     if not sys.platform.startswith("win"):
         raise RuntimeError("O instalador Inno Setup só pode ser compilado no Windows.")
@@ -331,14 +347,17 @@ def build_installer(executable: Path) -> Path:
     script = root / "installer" / "WhisperTranscriber.iss"
     if not script.is_file():
         raise FileNotFoundError(f"Script do instalador não encontrado: {script}")
+    if Path(output_name).name != output_name or not output_name.lower().endswith(".exe"):
+        raise ValueError("O nome de saída do instalador deve ser um arquivo .exe simples.")
     output_dir = root / "dist" / "installer"
     output_dir.mkdir(parents=True, exist_ok=True)
-    installer = output_dir / INSTALLER_NAME
+    installer = output_dir / output_name
     command = [
         str(find_iscc()),
         "/Qp",
         f"/O{output_dir}",
         f"/DAppVersion={__version__}",
+        f"/DOutputBaseFilename={installer.stem}",
         f"/DSourceDir={source_dir}",
         f"/DRootDir={root}",
         str(script),
@@ -363,6 +382,11 @@ def main() -> int:
         "--installer",
         action="store_true",
         help="gera o aplicativo CUDA em diretório e o instalador Windows",
+    )
+    mode.add_argument(
+        "--installer-cpu",
+        action="store_true",
+        help="gera o instalador Windows offline com PyTorch CPU para distribuição",
     )
     mode.add_argument(
         "--installer-only",
@@ -394,8 +418,17 @@ def main() -> int:
         return 0
     if args.installer:
         executable = build(onefile=False)
-        verify_executable(executable, require_cuda=True, allow_policy_block=True)
+        verify_executable(
+            executable,
+            require_runtime="NVIDIA CUDA",
+            allow_policy_block=True,
+        )
         build_installer(executable)
+        return 0
+    if args.installer_cpu:
+        executable = build(onefile=False)
+        verify_executable(executable, require_runtime="CPU")
+        build_installer(executable, output_name=CPU_INSTALLER_NAME)
         return 0
     if args.msix_only:
         executable = (
@@ -409,7 +442,12 @@ def main() -> int:
         return 0
     if args.msix:
         executable = build(onefile=False)
-        verify_executable(executable, require_cuda=True, allow_policy_block=True)
+        verify_executable(
+            executable,
+            require_cuda=True,
+            require_runtime="NVIDIA CUDA",
+            allow_policy_block=True,
+        )
         package = build_msix(executable)
         verify_msix(package)
         return 0

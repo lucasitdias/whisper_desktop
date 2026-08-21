@@ -7,6 +7,9 @@
 #ifndef RootDir
   #define RootDir ".."
 #endif
+#ifndef OutputBaseFilename
+  #define OutputBaseFilename "WhisperTranscriber-Setup-Windows-x64"
+#endif
 
 #define AppName "Whisper Transcriber Desktop"
 #define AppExeName "WhisperTranscriber.exe"
@@ -26,7 +29,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist\installer
-OutputBaseFilename=WhisperTranscriber-Setup-Windows-x64
+OutputBaseFilename={#OutputBaseFilename}
 SetupIconFile={#RootDir}\assets\icon.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 Compression=lzma2/max

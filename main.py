@@ -40,6 +40,7 @@ def self_check(output_path: str | Path | None = None) -> int:
             "python": sys.version.split()[0],
             "ffmpeg": str(ffmpeg),
             "dispositivo": TranscriberWorker.device_description(),
+            "runtime_pytorch": TranscriberWorker.runtime_description(),
             "status": "ok",
         }
         serialized = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"

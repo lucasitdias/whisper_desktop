@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -71,6 +72,122 @@ def test_worker_faz_fallback_de_cuda_para_cpu(monkeypatch, tmp_path: Path):
     worker.run()
     assert calls == ["cuda", "cpu"]
     assert completed.at(0)[0].device == "cpu"
+
+
+def test_detecta_cuda_nvidia_com_prioridade(monkeypatch):
+    monkeypatch.setattr("app.core.transcriber.torch.cuda.is_available", lambda: True)
+    monkeypatch.setattr("app.core.transcriber.torch.version.hip", None, raising=False)
+    monkeypatch.setattr(
+        "app.core.transcriber.torch.cuda.get_device_name", lambda _index: "GPU NVIDIA"
+    )
+
+    assert TranscriberWorker.detect_device() == "cuda"
+    assert TranscriberWorker.device_description() == "GPU NVIDIA CUDA: GPU NVIDIA"
+
+
+def test_detecta_rocm_amd(monkeypatch):
+    monkeypatch.setattr("app.core.transcriber.torch.cuda.is_available", lambda: True)
+    monkeypatch.setattr("app.core.transcriber.torch.version.hip", "7.2", raising=False)
+    monkeypatch.setattr(
+        "app.core.transcriber.torch.cuda.get_device_name", lambda _index: "GPU AMD"
+    )
+
+    assert TranscriberWorker.detect_device() == "rocm"
+    assert TranscriberWorker.device_description() == "GPU AMD ROCm: GPU AMD"
+
+
+def test_detecta_xpu_intel_quando_cuda_indisponivel(monkeypatch):
+    monkeypatch.setattr("app.core.transcriber.torch.cuda.is_available", lambda: False)
+    fake_xpu = SimpleNamespace(
+        is_available=lambda: True,
+        get_device_name=lambda _index: "GPU Intel",
+        empty_cache=lambda: None,
+        OutOfMemoryError=RuntimeError,
+    )
+    monkeypatch.setattr("app.core.transcriber.torch.xpu", fake_xpu, raising=False)
+
+    assert TranscriberWorker.detect_device() == "xpu"
+    assert TranscriberWorker.device_description() == "GPU Intel XPU: GPU Intel"
+
+
+def test_detecta_cpu_sem_backend_de_gpu(monkeypatch):
+    monkeypatch.setattr("app.core.transcriber.torch.cuda.is_available", lambda: False)
+    monkeypatch.setattr(
+        "app.core.transcriber.torch.xpu",
+        SimpleNamespace(is_available=lambda: False),
+        raising=False,
+    )
+
+    assert TranscriberWorker.detect_device() == "cpu"
+    assert TranscriberWorker.device_description() == (
+        "CPU (aceleração por GPU não disponível)"
+    )
+
+
+def test_driver_cuda_com_erro_faz_fallback_para_cpu(monkeypatch):
+    def unavailable():
+        raise RuntimeError("driver incompatível")
+
+    monkeypatch.setattr("app.core.transcriber.torch.cuda.is_available", unavailable)
+    monkeypatch.setattr(
+        "app.core.transcriber.torch.xpu",
+        SimpleNamespace(is_available=lambda: False),
+        raising=False,
+    )
+
+    assert TranscriberWorker.detect_device() == "cpu"
+
+
+def test_descreve_runtime_cuda_mesmo_sem_gpu(monkeypatch):
+    monkeypatch.setattr("app.core.transcriber.torch.version.hip", None, raising=False)
+    monkeypatch.setattr("app.core.transcriber.torch.version.cuda", "13.0", raising=False)
+    monkeypatch.setattr("app.core.transcriber.torch.version.xpu", None, raising=False)
+
+    assert TranscriberWorker.runtime_description() == "NVIDIA CUDA 13.0"
+
+
+@pytest.mark.parametrize(
+    ("backend", "torch_device", "fp16"),
+    [
+        ("cuda", "cuda", True),
+        ("rocm", "cuda", True),
+        ("xpu", "xpu", True),
+        ("cpu", "cpu", False),
+    ],
+)
+def test_transcribe_usa_backend_e_parametros_de_qualidade(
+    monkeypatch, tmp_path: Path, backend: str, torch_device: str, fp16: bool
+):
+    worker = TranscriberWorker(tmp_path / "audio.mp3")
+    captured = {}
+
+    class FakeModel:
+        def transcribe(self, _audio, **options):
+            captured["options"] = options
+            return {"text": "ok", "segments": []}
+
+    def fake_load_model(_name, *, device, download_root):
+        captured["device"] = device
+        captured["download_root"] = download_root
+        return FakeModel()
+
+    monkeypatch.setattr("app.core.transcriber.whisper.load_model", fake_load_model)
+    monkeypatch.setattr(worker, "_empty_device_cache", lambda _device: None)
+
+    result = worker._transcribe(np.zeros(16000), 1.0, backend)
+
+    assert result["text"] == "ok"
+    assert captured["device"] == torch_device
+    assert captured["options"] == {
+        "language": "pt",
+        "task": "transcribe",
+        "verbose": True,
+        "fp16": fp16,
+        "beam_size": 5,
+        "best_of": 5,
+        "condition_on_previous_text": True,
+        "word_timestamps": True,
+    }
 
 
 def test_stream_emite_segmento_e_progresso():
