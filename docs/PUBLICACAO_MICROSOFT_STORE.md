@@ -5,9 +5,9 @@ recomendado porque a Microsoft valida e assina o pacote MSIX durante a
 certificação. O arquivo MSIX gerado localmente é destinado ao Partner Center e
 não deve ser oferecido como instalador direto ao usuário final.
 
-O GitHub Releases também contém um instalador offline CPU autoverificado. Ele inclui FFmpeg e as
-dependências da aplicação, mas baixa o modelo `turbo` no primeiro uso e, sem Authenticode, pode ser
-bloqueado por políticas que aceitam somente código assinado.
+O GitHub Releases também contém instaladores offline NVIDIA CUDA 13 e CPU autoverificados. Eles
+incluem FFmpeg e as dependências da aplicação, mas baixam o modelo `turbo` no primeiro uso e, sem
+Authenticode, podem ser bloqueados por políticas que aceitam somente código assinado.
 
 - Página pública: <https://apps.microsoft.com/detail/9PHWS6MM59BG>
 - Releases e Linux: <https://github.com/lucasitdias/whisper_desktop/releases/latest>
@@ -84,7 +84,7 @@ empacotado. A justificativa usada no Partner Center deve explicar:
   Store.
 - Depois da certificação, a Microsoft assina e distribui o pacote pela página do
   produto.
-- O GitHub Releases publica um instalador Windows offline autoverificado e deixa explícita a
+- O GitHub Releases publica instaladores Windows offline autoverificados e deixa explícita a
   ausência de Authenticode, além do atalho para a Store. Em máquinas com Smart App Control, o
   canal Store assinado continua obrigatório. Builds Linux são distribuídos com SHA-256.
 - O áudio e a transcrição permanecem locais; apenas o modelo Whisper é baixado

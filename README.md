@@ -9,7 +9,8 @@ Markdown editável com metadados, texto integral e timestamps.
 | Plataforma | Download | Observação |
 | --- | --- | --- |
 | Windows 10/11 x64 | [Instalar pela Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG) | Canal recomendado: pacote MSIX validado e assinado pela Microsoft após a certificação. |
-| Windows 10/11 x64 offline | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Instalador `WhisperTranscriber-Setup-Windows-x64.exe` ou portátil `WhisperTranscriber-Windows-x64.exe`; confira `SHA256SUMS-Windows.txt`. |
+| Windows 10/11 x64, NVIDIA CUDA 13 offline | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Instalador completo `WhisperTranscriber-Setup-Windows-x64.exe`; usa GPU NVIDIA compatível e recua para CPU. Confira `SHA256SUMS-Windows-NVIDIA-CUDA.txt`. |
+| Windows 10/11 x64, CPU offline | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Instalador `WhisperTranscriber-Setup-Windows-x64-CPU.exe` ou portátil `WhisperTranscriber-Windows-x64.exe`. Confira `SHA256SUMS-Windows-CPU.txt`. |
 | Debian/Ubuntu x86-64 offline | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Instale `WhisperTranscriber-Setup-Linux-x64.deb` e confira `SHA256SUMS-Linux.txt`. |
 | Linux x86-64 portátil | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Use `WhisperTranscriber-Linux-x64` e confira `SHA256SUMS-Linux.txt`. |
 | Código-fonte | [Releases do projeto](https://github.com/lucasitdias/whisper_desktop/releases) | Cada release oferece arquivos `.zip` e `.tar.gz` gerados pelo GitHub. |
@@ -101,29 +102,34 @@ Pacote Windows para envio à Microsoft Store:
 uv run build.py --msix
 ```
 
-Instalador Windows CUDA para testes locais:
+Instalador Windows NVIDIA CUDA 13 completo, usado como download principal da release:
 
 ```powershell
 uv run build.py --installer
 ```
 
-Instalador Windows CPU usado no download offline da release:
+Instalador Windows CPU completo, usado como alternativa universal da release:
 
 ```powershell
 uv run build.py --installer-cpu
 ```
 
-O instalador offline inclui a aplicação, o runtime PyTorch indicado no nome do artefato e FFmpeg;
-somente o modelo `turbo` é baixado uma vez no primeiro uso. Um pacote Windows sem Authenticode
-confiável pode ser bloqueado pelo Smart App Control mesmo quando está completo. Nesse caso, use a
-Microsoft Store; a proteção do Windows não deve ser desativada.
+Os instaladores offline incluem a aplicação, o runtime PyTorch correspondente e FFmpeg; somente o
+modelo `turbo` é baixado uma vez no primeiro uso. O instalador principal contém CUDA 13 para GPU
+NVIDIA e executa em CPU quando CUDA não está disponível. A variante `-CPU` é menor e funciona sem
+GPU. Um pacote Windows sem Authenticode confiável pode ser bloqueado pelo Smart App Control mesmo
+quando está completo. Nesse caso, use a Microsoft Store; a proteção do Windows não deve ser
+desativada.
 
 ## GPU, desempenho e qualidade
 
 O programa prioriza uma GPU que o runtime instalado consiga usar e mostra o dispositivo real no
-cabeçalho. A configuração de reconhecimento é a mesma em todos os backends: modelo `turbo`, idioma
-`pt`, busca em feixe com cinco candidatos, contexto entre janelas e timestamps por palavra. GPU e
-CPU podem produzir pequenas diferenças numéricas (FP16 e FP32), e o tempo depende do hardware.
+cabeçalho. A release fornece uma variante NVIDIA CUDA e variantes CPU universais. AMD ROCm e Intel
+XPU continuam suportados pelo código quando a instalação é construída com a wheel PyTorch
+correspondente; uma wheel CUDA não usa GPU AMD/Intel. A configuração de reconhecimento é a mesma
+em todos os backends: modelo `turbo`, idioma `pt`, busca em feixe com cinco candidatos, contexto
+entre janelas e timestamps por palavra. GPU e CPU podem produzir pequenas diferenças numéricas
+(FP16 e FP32), e o tempo depende do hardware.
 
 Na validação local de 21/08/2026, a mesma amostra de 60 segundos gerou o mesmo texto, 22 segmentos,
 146 palavras e último timestamp em 59,98 s. A RTX 5070 concluiu em 13,71 s, com confiança média

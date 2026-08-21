@@ -29,7 +29,8 @@ voz e entrevistas em Português do Brasil.
 - Windows 10/11 x64 e Linux x86_64 são os alvos suportados.
 - O executável Linux portátil usa `--onefile --windowed`. No Windows, o canal recomendado usa
   `--onedir` dentro de um MSIX enviado à Microsoft Store para validação e assinatura. A release
-  também oferece instalador offline CPU, gerado com Inno Setup e autoverificado no CI. Todos
+  também oferece instaladores offline NVIDIA CUDA e CPU, gerados com Inno Setup e autoverificados
+  separadamente no CI. Todos
   incluem FFmpeg, enquanto o modelo permanece no cache do usuário; sem Authenticode, políticas
   como Smart App Control podem exigir o uso da Store.
 - Python 3.11, `uv`, PySide6, `openai-whisper==20250625`, PyTorch 2.12.1 e PyInstaller 6.

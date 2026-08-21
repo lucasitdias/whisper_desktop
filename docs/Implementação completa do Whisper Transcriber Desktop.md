@@ -32,11 +32,12 @@ Referências: [Whisper](https://github.com/openai/whisper), [PyTorch](https://py
 
 - `uv run build.py` gera o executável portátil `--onefile` da plataforma atual.
 - `uv run build.py --msix` gera, no Windows, o pacote CUDA destinado à Microsoft Store.
-- `uv run build.py --installer` gera o instalador Inno Setup CUDA; `--installer-cpu` gera a variante
-  CPU publicada como download offline.
+- `uv run build.py --installer` gera o instalador Inno Setup NVIDIA CUDA 13; `--installer-cpu` gera
+  a variante CPU. As duas são publicadas como downloads offline distintos.
 - Todos os builds usam `--windowed`, ícone próprio, FFmpeg incorporado, `--collect-all whisper` e `--collect-all torch`.
-- Builds por tag `v*` usam PyTorch CPU e publicam o Linux x86-64, o instalador Windows offline,
-  checksums separados, um atalho para a Microsoft Store e os arquivos-fonte do GitHub.
+- Builds por tag `v*` publicam Windows NVIDIA CUDA 13, Windows CPU, Linux CPU, checksums separados,
+  um atalho para a Microsoft Store e os arquivos-fonte do GitHub. Cada instalador é construído e
+  autoverificado no ambiente correspondente.
 - A versão Windows pública é validada, assinada e distribuída pela
   [Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG).
 - O modelo `turbo` não é incorporado e é baixado na primeira transcrição.

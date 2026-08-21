@@ -56,13 +56,14 @@ uv run build.py --installer
 O build local incorpora o Torch/CUDA do ambiente. No Windows, `--msix` requer o Windows SDK e
 gera o pacote destinado ao Partner Center; a instalação pública ocorre pela
 [Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG). O GitHub Actions publica o
-executável Linux CPU, o instalador Windows offline CPU, checksums separados, atalho da Store e
-arquivos-fonte em tags `v*`.
+instalador Windows NVIDIA CUDA 13, o instalador e o portátil Windows CPU, o executável e o DEB
+Linux CPU, checksums separados, atalho da Store e arquivos-fonte em tags `v*`.
 
 O comando `--installer` requer Inno Setup 6 ou 7 e gera um pacote NVIDIA CUDA por usuário em
 `dist/installer/WhisperTranscriber-Setup-Windows-x64.exe`; `--installer-cpu` gera a variante CPU
-usada na release. Sem Authenticode, ele pode ser bloqueado pelo Smart App Control e não substitui
-o MSIX assinado da Store em computadores com essa política.
+`WhisperTranscriber-Setup-Windows-x64-CPU.exe`. Ambas são publicadas na release. Sem Authenticode,
+elas podem ser bloqueadas pelo Smart App Control e não substituem o MSIX assinado da Store em
+computadores com essa política.
 
 ## 5. Diagnóstico
 

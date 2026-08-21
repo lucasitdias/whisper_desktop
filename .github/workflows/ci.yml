@@ -2,7 +2,7 @@ name: Qualidade
 
 on:
   push:
-    branches: [main, "agent/**"]
+    branches: [main, "release/**", "recurso/**", "correcao/**"]
   pull_request:
 
 permissions:

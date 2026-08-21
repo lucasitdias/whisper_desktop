@@ -164,3 +164,8 @@ def test_verify_executable_pode_continuar_se_smart_app_control_bloquear(
     )
 
     assert result["status"] == "bloqueado_politica"
+
+
+def test_nomes_dos_instaladores_separam_cuda_e_cpu():
+    assert build.INSTALLER_NAME == "WhisperTranscriber-Setup-Windows-x64.exe"
+    assert build.CPU_INSTALLER_NAME == "WhisperTranscriber-Setup-Windows-x64-CPU.exe"

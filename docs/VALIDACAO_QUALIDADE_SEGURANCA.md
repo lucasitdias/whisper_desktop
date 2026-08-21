@@ -4,14 +4,14 @@
 
 Todo push e pull request deve passar em Windows e Linux:
 
-1. instalação do perfil CPU em Python 3.11;
+1. instalação do perfil CPU em Python 3.11 para qualidade e dos perfis CPU/CUDA nos builds;
 2. `ruff check .`;
 3. `pytest` com Qt offscreen;
 4. download/verificação do FFmpeg;
 5. `main.py --self-check`.
 
-Tags `v*` adicionam builds CPU Linux e Windows, autoverificação, instalador offline Inno Setup,
-checksums, atalho da Microsoft Store e publicação no GitHub Releases.
+Tags `v*` adicionam Linux CPU, Windows CPU e Windows NVIDIA CUDA 13, autoverificação dos runtimes,
+instalação e remoção dos pacotes, checksums, atalho da Microsoft Store e GitHub Releases.
 
 ### Evidências locais entre 18 e 21/08/2026
 
@@ -60,6 +60,8 @@ checksums, atalho da Microsoft Store e publicação no GitHub Releases.
 - candidato CUDA recompilado com o código atual: 1.798.054.750 bytes e SHA-256
   `7F8AD560E93AACDCE97EF3350F241A5F2C50A9D931F48E5BF563B13C1ADEC79B`. A inspeção confirmou
   `torch_cuda.dll`, CUDA 13, cuBLAS e cuDNN no pacote;
+- executável `--onedir` desse mesmo candidato: autoverificação aprovada em 21/08/2026, com FFmpeg
+  incorporado, `NVIDIA CUDA 13.0` e `NVIDIA GeForce RTX 5070 Laptop GPU`;
 - o Smart App Control local bloqueou esse instalador sem Authenticode antes da execução. Essa
   modalidade só é aprovada em CI limpo; para computadores com a política ativa, o aceite exige o
   MSIX assinado pela Microsoft Store.

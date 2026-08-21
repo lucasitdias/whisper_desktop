@@ -19,6 +19,7 @@ from app.core.ffmpeg_finder import FFmpegFinder
 
 APP_EXECUTABLE = "WhisperTranscriber"
 INSTALLER_NAME = "WhisperTranscriber-Setup-Windows-x64.exe"
+CPU_INSTALLER_NAME = "WhisperTranscriber-Setup-Windows-x64-CPU.exe"
 STORE_PACKAGE_NAME = "WhisperTranscriber.WhisperTranscriberDesktop"
 STORE_PUBLISHER = "CN=B12A9AED-D3CC-463A-B3E5-ED71178CABF3"
 STORE_PUBLISHER_DISPLAY_NAME = "WhisperTranscriber"
@@ -331,7 +332,9 @@ def verify_msix(package: Path) -> dict[str, str]:
     return actual
 
 
-def build_installer(executable: Path) -> Path:
+def build_installer(
+    executable: Path, *, output_name: str = INSTALLER_NAME
+) -> Path:
     """Empacota o diretório PyInstaller em um instalador Windows com desinstalador."""
     if not sys.platform.startswith("win"):
         raise RuntimeError("O instalador Inno Setup só pode ser compilado no Windows.")
@@ -344,14 +347,17 @@ def build_installer(executable: Path) -> Path:
     script = root / "installer" / "WhisperTranscriber.iss"
     if not script.is_file():
         raise FileNotFoundError(f"Script do instalador não encontrado: {script}")
+    if Path(output_name).name != output_name or not output_name.lower().endswith(".exe"):
+        raise ValueError("O nome de saída do instalador deve ser um arquivo .exe simples.")
     output_dir = root / "dist" / "installer"
     output_dir.mkdir(parents=True, exist_ok=True)
-    installer = output_dir / INSTALLER_NAME
+    installer = output_dir / output_name
     command = [
         str(find_iscc()),
         "/Qp",
         f"/O{output_dir}",
         f"/DAppVersion={__version__}",
+        f"/DOutputBaseFilename={installer.stem}",
         f"/DSourceDir={source_dir}",
         f"/DRootDir={root}",
         str(script),
@@ -414,7 +420,6 @@ def main() -> int:
         executable = build(onefile=False)
         verify_executable(
             executable,
-            require_cuda=True,
             require_runtime="NVIDIA CUDA",
             allow_policy_block=True,
         )
@@ -423,7 +428,7 @@ def main() -> int:
     if args.installer_cpu:
         executable = build(onefile=False)
         verify_executable(executable, require_runtime="CPU")
-        build_installer(executable)
+        build_installer(executable, output_name=CPU_INSTALLER_NAME)
         return 0
     if args.msix_only:
         executable = (

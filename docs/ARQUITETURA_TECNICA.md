@@ -81,14 +81,15 @@ Como as wheels PyTorch CUDA, ROCm, XPU e CPU são mutuamente exclusivas, cada bu
 um runtime e deve ser nomeado de forma inequívoca. Detectar uma placa sem o backend correspondente
 não autoriza afirmar que ela está sendo usada.
 O Linux portátil usa `--onefile`; o MSIX Windows usa `--onedir` para manter DLLs CUDA junto ao
-executável. O instalador Windows offline também usa `--onedir`, mas o CI instala PyTorch CPU para
-reduzir o pacote e ampliar a compatibilidade. O build deve ser executado separadamente em Windows
-e Linux; não existe cross-compilation. Tags `v*` publicam o executável Linux CPU, o instalador
-Windows offline CPU, checksums, atalho da Store e os arquivos-fonte gerados pelo GitHub.
+executável. Os instaladores Windows offline também usam `--onedir`. O CI gera e testa separadamente
+uma variante NVIDIA CUDA 13 e uma variante CPU, porque esses runtimes PyTorch são mutuamente
+exclusivos. O build deve ser executado separadamente em Windows e Linux; não existe
+cross-compilation. Tags `v*` publicam os dois instaladores Windows, o portátil Windows CPU, o
+executável e o DEB Linux CPU, checksums, atalho da Store e os arquivos-fonte do GitHub.
 
 No canal oficial Windows, o diretório PyInstaller é empacotado como MSIX com a identidade reservada
 no Partner Center. A Microsoft valida, assina e distribui o pacote pela Store. Como alternativa
-direta, o Inno Setup compacta o mesmo aplicativo CPU em um instalador offline autoverificado. Ele
+direta, o Inno Setup compacta cada variante em um instalador offline autoverificado. Ele
 não substitui a assinatura da Store em máquinas que impõem Smart App Control. O aplicativo
 empacotado é executado com `--self-check-output` antes da compactação, pois builds `--windowed` não
 possuem console. O bootstrap substitui `stdout` e `stderr` ausentes por fluxos graváveis, inclusive
