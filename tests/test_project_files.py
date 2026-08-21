@@ -42,6 +42,7 @@ def test_release_publica_todas_as_opcoes_suportadas():
     assert "self-check-instalado.json" in workflow
     assert "dpkg --install" in workflow
     assert "dpkg --remove" in workflow
+    assert "tomllib.load(open('pyproject.toml', 'rb'))" in workflow
     assert "pull_request:" in workflow
     assert "if: startsWith(github.ref, 'refs/tags/v')" in workflow
     assert "SHA256SUMS-Linux.txt" in workflow

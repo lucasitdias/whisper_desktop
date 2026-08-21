@@ -34,7 +34,7 @@ jobs:
         run: ./dist/WhisperTranscriber-Linux-x64 --self-check
       - name: Gerar instalador offline DEB
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")"
           mkdir -p dist/deb-root/DEBIAN dist/deb-root/opt/whisper-transcriber dist/deb-root/usr/bin dist/deb-root/usr/share/applications dist/deb-root/usr/share/icons/hicolor/256x256/apps
           sed "s/@VERSION@/${version}/g" packaging/linux/control.in > dist/deb-root/DEBIAN/control
           cp dist/WhisperTranscriber-Linux-x64 dist/deb-root/opt/whisper-transcriber/WhisperTranscriber
