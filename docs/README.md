@@ -8,10 +8,12 @@ transcrição usa o modelo OpenAI Whisper `turbo`, fixado em Português do Brasi
 
 - seleção por diálogo ou arrastar e soltar;
 - processamento em `QThread`, sem bloquear a interface;
+- cancelamento cooperativo durante a transcrição, sem encerrar a thread à força;
 - CUDA quando disponível e fallback automático para CPU, inclusive por falta de VRAM;
 - download automático e verificado do FFmpeg 8.1.2;
 - progresso e trechos exibidos durante a transcrição;
 - editor Markdown, prévia formatada, cópia e salvamento seguro;
+- confirmação de cobertura integral, última fala e confiança estimada por palavra;
 - executável portátil Windows/Linux criado com PyInstaller;
 - instalador Windows x64 com CUDA, FFmpeg, atalhos e desinstalador.
 
@@ -34,6 +36,16 @@ uv run main.py
 
 Na primeira transcrição, o aplicativo baixa o modelo `turbo` para o cache do usuário. O áudio e a
 transcrição permanecem locais.
+
+Durante o processamento, “Cancelar Transcrição” solicita uma parada segura. A etapa em curso pode
+levar alguns segundos para liberar o modelo/GPU; nenhum resultado parcial é salvo. Quando a
+transcrição termina, a interface e o Markdown mostram a duração integral processada, a última fala
+detectada e a confiança média estimada a partir dos timestamps por palavra. Palavras abaixo de 50%
+de confiança são listadas com o horário correspondente para orientar a revisão.
+
+Cobertura de 100% significa que o Whisper percorreu todo o áudio decodificado. Isso não comprova
+fidelidade palavra por palavra: ruído, sobreposição de vozes, sotaque e gravação ruim podem produzir
+erros. Conteúdo crítico deve ser revisado ouvindo o áudio nos timestamps indicados.
 
 Autoverificação sem abrir a GUI nem baixar o modelo:
 

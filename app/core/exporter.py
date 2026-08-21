@@ -29,6 +29,15 @@ class MarkdownExporter:
         title = Path(source_name).stem.replace("#", "\\#")
         date = result.transcribed_at.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
         processing = "GPU (CUDA)" if result.device == "cuda" else "CPU"
+        coverage = result.processing_coverage_percent
+        processed = cls.format_timestamp(result.processed_seconds)
+        last_speech = result.last_speech_end_seconds
+        confidence = (
+            f"{result.average_word_confidence * 100:.1f}% em {result.word_count} palavras "
+            f"({result.low_confidence_word_count} abaixo de 50%)"
+            if result.average_word_confidence is not None
+            else "indisponível"
+        )
         lines = [
             f"# Transcrição de Áudio - {title}",
             "",
@@ -38,18 +47,56 @@ class MarkdownExporter:
             f"- **Modelo Utilizado:** Whisper `{result.model_name}` (809M parâmetros)",
             f"- **Idioma Configurado:** Português do Brasil (`{result.language}`)",
             f"- **Processamento:** {processing}",
+            f"- **Cobertura do Processamento:** {coverage:.0f}% ({processed} decodificados)",
+            f"- **Confiança Média Estimada:** {confidence}",
+            (
+                f"- **Última Fala Detectada:** {cls.format_timestamp(last_speech)}"
+                if last_speech is not None
+                else "- **Última Fala Detectada:** nenhuma fala identificada"
+            ),
             "",
             "---",
             "",
-            "## 📝 Transcrição Completa",
+            "## ✅ Verificação de Integridade",
             "",
-            result.text.strip() or "_Nenhuma fala foi identificada no arquivo._",
+            (
+                f"O Whisper concluiu o processamento de {processed}, equivalente a "
+                f"{coverage:.0f}% do áudio decodificado."
+            ),
             "",
-            "---",
+            (
+                "> A cobertura confirma que o arquivo inteiro foi processado, mas a confiança é "
+                "uma estimativa e não garante fidelidade palavra por palavra. Revise o áudio em "
+                "conteúdos críticos."
+            ),
             "",
-            "## ⏱️ Transcrição com Marcadores Temporais (Timestamps)",
+            "### Palavras para revisão",
             "",
         ]
+        if result.low_confidence_words:
+            for word in result.low_confidence_words:
+                timestamp = cls.format_timestamp(word.start)
+                safe_word = cls._inline_code(word.text) or "(sem texto)"
+                lines.append(
+                    f"- **[{timestamp}]** `{safe_word}` — confiança {word.probability * 100:.1f}%"
+                )
+        else:
+            lines.append("_Nenhuma palavra ficou abaixo do limiar de confiança de 50%._")
+        lines.extend(
+            [
+                "",
+                "---",
+                "",
+                "## 📝 Transcrição Completa",
+                "",
+                result.text.strip() or "_Nenhuma fala foi identificada no arquivo._",
+                "",
+                "---",
+                "",
+                "## ⏱️ Transcrição com Marcadores Temporais (Timestamps)",
+                "",
+            ]
+        )
         segments = [segment for segment in result.segments if segment.text.strip()]
         if segments:
             for segment in segments:

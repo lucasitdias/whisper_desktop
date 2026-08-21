@@ -5,9 +5,11 @@ from __future__ import annotations
 import contextlib
 import gc
 import io
+import math
 import os
 import re
 import sys
+import threading
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
@@ -29,15 +31,46 @@ class TranscriptionSegment:
 
 
 @dataclass(frozen=True, slots=True)
+class TranscriptionWord:
+    start: float
+    end: float
+    text: str
+    probability: float
+
+
+@dataclass(frozen=True, slots=True)
 class TranscriptionResult:
     source_name: str
     duration_seconds: float
+    processed_seconds: float
     text: str
     segments: tuple[TranscriptionSegment, ...]
     model_name: str
     language: str
     device: str
     transcribed_at: datetime
+    average_word_confidence: float | None = None
+    word_count: int = 0
+    low_confidence_words: tuple[TranscriptionWord, ...] = ()
+
+    @property
+    def processing_coverage_percent(self) -> float:
+        if self.duration_seconds <= 0:
+            return 100.0
+        return min(100.0, max(0.0, self.processed_seconds / self.duration_seconds * 100))
+
+    @property
+    def last_speech_end_seconds(self) -> float | None:
+        ends = [segment.end for segment in self.segments if segment.text.strip()]
+        return max(ends) if ends else None
+
+    @property
+    def low_confidence_word_count(self) -> int:
+        return len(self.low_confidence_words)
+
+
+class TranscriptionCancelled(Exception):
+    """Interrupção solicitada pelo usuário, sem representar falha da aplicação."""
 
 
 _TIMESTAMP_PATTERN = re.compile(
@@ -65,6 +98,7 @@ class _WhisperOutputStream(io.TextIOBase):
         return True
 
     def write(self, text: str) -> int:
+        self.worker._raise_if_cancelled()
         self.buffer += text
         while "\n" in self.buffer:
             line, self.buffer = self.buffer.split("\n", 1)
@@ -77,6 +111,7 @@ class _WhisperOutputStream(io.TextIOBase):
             self.buffer = ""
 
     def _process(self, line: str) -> None:
+        self.worker._raise_if_cancelled()
         match = _TIMESTAMP_PATTERN.match(line)
         if not match:
             return
@@ -96,6 +131,7 @@ class TranscriberWorker(QThread):
     segment_decoded = Signal(str)
     completed = Signal(object)
     failed = Signal(str)
+    cancelled = Signal(str)
 
     MODEL_NAME = "turbo"
     LANGUAGE = "pt"
@@ -103,6 +139,21 @@ class TranscriberWorker(QThread):
     def __init__(self, audio_path: str | Path, parent: Any = None) -> None:
         super().__init__(parent)
         self.audio_path = Path(audio_path)
+        self._cancel_event = threading.Event()
+
+    def cancel(self) -> None:
+        """Solicita cancelamento cooperativo sem encerrar a thread à força."""
+        if self._cancel_event.is_set():
+            return
+        self._cancel_event.set()
+        self.requestInterruption()
+        self.status_changed.emit(
+            "Cancelamento solicitado; finalizando a etapa atual com segurança..."
+        )
+
+    def _raise_if_cancelled(self) -> None:
+        if self._cancel_event.is_set() or self.isInterruptionRequested():
+            raise TranscriptionCancelled
 
     @staticmethod
     def detect_device() -> str:
@@ -127,17 +178,20 @@ class TranscriberWorker(QThread):
 
     def run(self) -> None:
         try:
+            self._raise_if_cancelled()
             self._validate_input()
             self.status_changed.emit("Verificando o FFmpeg...")
             self.progress_changed.emit(-1)
             ffmpeg = FFmpegFinder.ensure_available()
             FFmpegFinder.prepend_to_path(ffmpeg)
+            self._raise_if_cancelled()
 
             self.status_changed.emit("Decodificando o arquivo de áudio...")
             self.progress_changed.emit(5)
             audio = whisper.load_audio(str(self.audio_path))
             duration = float(len(audio) / whisper.audio.SAMPLE_RATE)
             self.progress_changed.emit(15)
+            self._raise_if_cancelled()
 
             device = self.detect_device()
             try:
@@ -151,8 +205,11 @@ class TranscriberWorker(QThread):
                 self.progress_changed.emit(15)
                 torch.cuda.empty_cache()
                 gc.collect()
+                self._raise_if_cancelled()
                 raw_result = self._transcribe(audio, duration, "cpu")
                 device = "cpu"
+
+            self._raise_if_cancelled()
 
             segments = tuple(
                 TranscriptionSegment(
@@ -162,21 +219,40 @@ class TranscriberWorker(QThread):
                 )
                 for segment in raw_result.get("segments", [])
             )
+            words = self._words_with_confidence(raw_result)
+            word_probabilities = [word.probability for word in words]
+            average_confidence = (
+                math.fsum(word_probabilities) / len(word_probabilities)
+                if word_probabilities
+                else None
+            )
             result = TranscriptionResult(
                 source_name=self.audio_path.name,
                 duration_seconds=duration,
+                processed_seconds=duration,
                 text=str(raw_result.get("text", "")).strip(),
                 segments=segments,
                 model_name=self.MODEL_NAME,
                 language=self.LANGUAGE,
                 device=device,
                 transcribed_at=datetime.now().astimezone(),
+                average_word_confidence=average_confidence,
+                word_count=len(word_probabilities),
+                low_confidence_words=tuple(
+                    word for word in words if word.probability < 0.5
+                ),
             )
+            self._raise_if_cancelled()
             self.status_changed.emit("Gerando o documento Markdown...")
             self.progress_changed.emit(98)
             self.completed.emit(result)
             self.progress_changed.emit(100)
             self.status_changed.emit("Transcrição concluída com sucesso.")
+        except TranscriptionCancelled:
+            message = "Transcrição cancelada. Nenhum resultado parcial foi salvo."
+            self.progress_changed.emit(0)
+            self.status_changed.emit(message)
+            self.cancelled.emit(message)
         except Exception as error:
             traceback.print_exc()
             self.failed.emit(self._friendly_error(error))
@@ -190,10 +266,13 @@ class TranscriberWorker(QThread):
             device=device,
             download_root=str(self.model_cache_root()),
         )
-        self.status_changed.emit(f"Transcrevendo em Português do Brasil usando {processing}...")
-        self.progress_changed.emit(20)
-        stream = _WhisperOutputStream(self, duration)
         try:
+            self._raise_if_cancelled()
+            self.status_changed.emit(
+                f"Transcrevendo em Português do Brasil usando {processing}..."
+            )
+            self.progress_changed.emit(20)
+            stream = _WhisperOutputStream(self, duration)
             with contextlib.redirect_stdout(stream):
                 return model.transcribe(
                     audio,
@@ -201,9 +280,11 @@ class TranscriberWorker(QThread):
                     task="transcribe",
                     verbose=True,
                     fp16=device == "cuda",
+                    word_timestamps=True,
                 )
         finally:
-            stream.flush()
+            if "stream" in locals():
+                stream.flush()
             del model
             if device == "cuda":
                 torch.cuda.empty_cache()
@@ -218,6 +299,23 @@ class TranscriberWorker(QThread):
     def _is_cuda_oom(error: Exception) -> bool:
         oom_type = getattr(torch.cuda, "OutOfMemoryError", RuntimeError)
         return isinstance(error, oom_type) or "out of memory" in str(error).lower()
+
+    @staticmethod
+    def _words_with_confidence(raw_result: dict[str, Any]) -> list[TranscriptionWord]:
+        words: list[TranscriptionWord] = []
+        for segment in raw_result.get("segments", []):
+            for word in segment.get("words") or []:
+                probability = word.get("probability")
+                if isinstance(probability, (int, float)) and math.isfinite(probability):
+                    words.append(
+                        TranscriptionWord(
+                            start=float(word.get("start", segment.get("start", 0.0))),
+                            end=float(word.get("end", segment.get("end", 0.0))),
+                            text=str(word.get("word", "")).strip(),
+                            probability=min(1.0, max(0.0, float(probability))),
+                        )
+                    )
+        return words
 
     @staticmethod
     def _friendly_error(error: Exception) -> str:

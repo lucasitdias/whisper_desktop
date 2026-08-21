@@ -1,9 +1,14 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 from PySide6.QtTest import QSignalSpy
 
-from app.core.transcriber import TranscriberWorker, _WhisperOutputStream
+from app.core.transcriber import (
+    TranscriberWorker,
+    TranscriptionCancelled,
+    _WhisperOutputStream,
+)
 
 
 def prepare_worker(monkeypatch, tmp_path: Path) -> TranscriberWorker:
@@ -24,7 +29,17 @@ def test_worker_emite_resultado_cpu(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(
         worker,
         "_transcribe",
-        lambda *_args: {"text": " teste", "segments": [{"start": 0, "end": 1, "text": " teste"}]},
+        lambda *_args: {
+            "text": " teste",
+            "segments": [
+                {
+                    "start": 0,
+                    "end": 1,
+                    "text": " teste",
+                    "words": [{"word": " teste", "probability": 0.9}],
+                }
+            ],
+        },
     )
     completed = QSignalSpy(worker.completed)
     worker.run()
@@ -33,6 +48,10 @@ def test_worker_emite_resultado_cpu(monkeypatch, tmp_path: Path):
     assert result.text == "teste"
     assert result.device == "cpu"
     assert result.duration_seconds == 1
+    assert result.processed_seconds == 1
+    assert result.processing_coverage_percent == 100
+    assert result.average_word_confidence == 0.9
+    assert result.word_count == 1
 
 
 def test_worker_faz_fallback_de_cuda_para_cpu(monkeypatch, tmp_path: Path):
@@ -70,3 +89,27 @@ def test_worker_rejeita_arquivo_inexistente(tmp_path: Path):
     worker.run()
     assert failed.count() == 1
     assert "não existe" in failed.at(0)[0]
+
+
+def test_worker_cancela_sem_emitir_falha_ou_resultado(monkeypatch, tmp_path: Path):
+    worker = prepare_worker(monkeypatch, tmp_path)
+    cancelled = QSignalSpy(worker.cancelled)
+    failed = QSignalSpy(worker.failed)
+    completed = QSignalSpy(worker.completed)
+
+    worker.cancel()
+    worker.run()
+
+    assert cancelled.count() == 1
+    assert "cancelada" in cancelled.at(0)[0].lower()
+    assert failed.count() == 0
+    assert completed.count() == 0
+
+
+def test_stream_interrompe_inferencia_quando_cancelado():
+    worker = TranscriberWorker("audio.mp3")
+    stream = _WhisperOutputStream(worker, duration=10)
+    worker.cancel()
+
+    with pytest.raises(TranscriptionCancelled):
+        stream.write("[00:00.000 --> 00:05.000] trecho\n")

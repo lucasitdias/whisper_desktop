@@ -45,6 +45,16 @@ QPushButton#secondaryButton {
 }
 QPushButton#secondaryButton:hover { background-color: #2C2C35; }
 QPushButton#secondaryButton:disabled { color: #4B5563; border-color: #2C2C35; }
+QPushButton#dangerButton {
+    background-color: transparent;
+    color: #FCA5A5;
+    border: 1px solid #EF4444;
+    border-radius: 6px;
+    padding: 9px 16px;
+}
+QPushButton#dangerButton:hover { background-color: #3F1D24; color: #FFFFFF; }
+QPushButton#dangerButton:pressed { background-color: #5F1D28; }
+QPushButton#dangerButton:disabled { color: #4B5563; border-color: #2C2C35; }
 QTextEdit, QPlainTextEdit, QTextBrowser {
     background-color: #18181C;
     color: #F3F4F6;
