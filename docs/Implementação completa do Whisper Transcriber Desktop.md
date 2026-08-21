@@ -16,7 +16,7 @@ Referências: [Whisper](https://github.com/openai/whisper), [PyTorch](https://py
 - `main.py` inicializa o Qt, tema, ícone e expõe `--self-check` e `--self-check-output`.
 - `FFmpegFinder` resolve recursos PyInstaller, checkout, `PATH` e cache verificado, nessa ordem.
 - Windows e Linux x86_64 usam FFmpeg estático da BtbN, com URL imutável e SHA-256 fixado.
-- `TranscriberWorker(QThread)` detecta CUDA/CPU, usa FP16/FP32, emite sinais de status, progresso, segmentos, conclusão e falha, e faz fallback por falta de VRAM.
+- `TranscriberWorker(QThread)` detecta CUDA/ROCm/XPU/CPU, mostra a GPU real, usa FP16/FP32, emite sinais de status, progresso, segmentos, conclusão e falha, e faz fallback por falta de memória do acelerador.
 - `MarkdownExporter` oferece renderização pura e escrita UTF-8 atômica, sem expor caminhos absolutos.
 
 ## Interface e experiência

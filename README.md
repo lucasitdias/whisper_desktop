@@ -24,7 +24,8 @@ Microsoft pode devolvê-lo com a assinatura confiável necessária para instala�
 - seleção de um MP3 ou M4A por diálogo ou arrastar e soltar;
 - processamento em `QThread`, sem bloquear a interface;
 - cancelamento cooperativo, sem encerrar a thread à força nem salvar resultado parcial;
-- CUDA/FP16 quando disponível e fallback automático para CPU/FP32, inclusive por falta de VRAM;
+- prioridade automática para um backend de GPU compatível: NVIDIA CUDA, AMD ROCm ou Intel XPU;
+- exibição do fabricante, backend e nome real da GPU usada, com fallback automático para CPU/FP32;
 - resolução e verificação automática do FFmpeg 8.1.2;
 - progresso por timestamps e exibição incremental dos trechos decodificados;
 - editor Markdown, visualização sincronizada, cópia e salvamento atômico;
@@ -55,8 +56,13 @@ uv sync --frozen
 uv run main.py
 ```
 
-O ambiente de desenvolvimento usa PyTorch 2.12.1 com CUDA 13.0. Sem GPU ou driver compatível, a
-aplicação continua funcionando em CPU. O áudio e a transcrição permanecem no computador.
+O ambiente de desenvolvimento usa PyTorch 2.12.1 com CUDA 13.0. A aplicação também reconhece
+ROCm e XPU quando executada com a variante correspondente do PyTorch. Sem backend ou driver
+compatível, continua funcionando em CPU. O áudio e a transcrição permanecem no computador.
+
+PyTorch distribui CUDA, ROCm, XPU e CPU como runtimes diferentes. Por isso, um instalador só pode
+prometer aceleração para o backend que realmente contém: CUDA para NVIDIA, ROCm para AMD no Linux
+ou XPU para Intel. A interface nunca mostra uma GPU como ativa quando a inferência está em CPU.
 
 Autoverificação sem abrir a interface nem baixar o modelo:
 
@@ -107,10 +113,22 @@ Instalador Windows CPU usado no download offline da release:
 uv run build.py --installer-cpu
 ```
 
-O instalador offline inclui a aplicação, PyTorch CPU e FFmpeg; somente o modelo `turbo` é baixado
-uma vez no primeiro uso. Ele é compilado e autoverificado em um runner Windows limpo, mas não
-possui Authenticode e pode ser bloqueado pelo Smart App Control. Nesse caso, use a Microsoft Store;
-a proteção do Windows não deve ser desativada.
+O instalador offline inclui a aplicação, o runtime PyTorch indicado no nome do artefato e FFmpeg;
+somente o modelo `turbo` é baixado uma vez no primeiro uso. Um pacote Windows sem Authenticode
+confiável pode ser bloqueado pelo Smart App Control mesmo quando está completo. Nesse caso, use a
+Microsoft Store; a proteção do Windows não deve ser desativada.
+
+## GPU, desempenho e qualidade
+
+O programa prioriza uma GPU que o runtime instalado consiga usar e mostra o dispositivo real no
+cabeçalho. A configuração de reconhecimento é a mesma em todos os backends: modelo `turbo`, idioma
+`pt`, busca em feixe com cinco candidatos, contexto entre janelas e timestamps por palavra. GPU e
+CPU podem produzir pequenas diferenças numéricas (FP16 e FP32), e o tempo depende do hardware.
+
+Na validação local de 21/08/2026, a mesma amostra de 60 segundos gerou o mesmo texto, 22 segmentos,
+146 palavras e último timestamp em 59,98 s. A RTX 5070 concluiu em 13,71 s, com confiança média
+estimada de 90,83%; a CPU concluiu em 51,37 s, com 90,80%. Isso demonstra equivalência nessa
+amostra, não uma garantia absoluta para todo áudio.
 
 ## Estrutura
 

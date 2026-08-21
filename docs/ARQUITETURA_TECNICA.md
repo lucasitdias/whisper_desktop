@@ -22,7 +22,7 @@ TranscriberWorker (QThread)
 
 - `main.py`: bootstrap Qt e `--self-check`.
 - `app/core/ffmpeg_finder.py`: resolução, download, SHA-256, extração e PATH.
-- `app/core/transcriber.py`: tipos de resultado, progresso, CUDA/CPU e sinais Qt.
+- `app/core/transcriber.py`: tipos de resultado, progresso, CUDA/ROCm/XPU/CPU e sinais Qt.
 - `app/core/exporter.py`: Markdown e escrita UTF-8 atômica.
 - `app/ui/main_window.py`: seleção, execução, editor, prévia, cópia e salvamento.
 - `app/ui/styles.py`: tokens e folha QSS.
@@ -60,19 +60,26 @@ Somente o membro `bin/ffmpeg(.exe)` é lido do arquivo; não há `extractall` ne
 ## 5. Transcrição e fallback
 
 O áudio é decodificado uma vez com `whisper.load_audio`. A duração deriva da quantidade de amostras.
-O modelo usa FP16 em CUDA e FP32 em CPU. A saída incremental do Whisper fornece trechos e timestamps
-para o progresso. Em erro de memória CUDA, o cache é liberado e a operação reinicia em CPU.
+O modelo usa FP16 em GPU e FP32 em CPU. A prioridade é CUDA/ROCm, depois XPU e finalmente CPU; ROCm
+usa o nome de dispositivo `cuda` por compatibilidade da API PyTorch. O cabeçalho apresenta o nome
+real retornado pelo backend. A saída incremental do Whisper fornece trechos e timestamps para o
+progresso. Em erro de memória do acelerador, o cache correspondente é liberado e a operação
+reinicia em CPU.
 O cancelamento usa um evento thread-safe e `requestInterruption()`. Pontos seguros verificam a
 solicitação entre FFmpeg, decodificação, carregamento e inferência; durante a inferência, a saída de
 segmentos interrompe cooperativamente o loop. Não são usados `terminate()` nem resultados parciais.
 
-`word_timestamps=True` fornece probabilidades por palavra. O resultado registra cobertura da
+`beam_size=5`, `best_of=5`, contexto anterior e `word_timestamps=True` mantêm a mesma estratégia de
+decodificação nos backends. Os timestamps fornecem probabilidades por palavra. O resultado registra cobertura da
 duração decodificada, último timestamp de fala, confiança média e quantidade de palavras abaixo de
 50%. Essas métricas ajudam a revisão, mas não constituem garantia de exatidão linguística.
 
 ## 6. Empacotamento
 
 O PyInstaller recebe `--windowed`, `--add-binary`, `--collect-all whisper` e `--collect-all torch`.
+Como as wheels PyTorch CUDA, ROCm, XPU e CPU são mutuamente exclusivas, cada build incorpora somente
+um runtime e deve ser nomeado de forma inequívoca. Detectar uma placa sem o backend correspondente
+não autoriza afirmar que ela está sendo usada.
 O Linux portátil usa `--onefile`; o MSIX Windows usa `--onedir` para manter DLLs CUDA junto ao
 executável. O instalador Windows offline também usa `--onedir`, mas o CI instala PyTorch CPU para
 reduzir o pacote e ampliar a compatibilidade. O build deve ser executado separadamente em Windows

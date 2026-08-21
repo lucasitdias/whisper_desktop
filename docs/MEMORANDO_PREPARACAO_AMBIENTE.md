@@ -10,7 +10,7 @@
 ## 1. Pré-requisitos recomendados
 
 - 16 GB de RAM e 15 GB livres;
-- NVIDIA com pelo menos 6 GB de VRAM para o modelo `turbo`;
+- GPU compatível com o runtime PyTorch escolhido; para CUDA, NVIDIA com pelo menos 6 GB de VRAM;
 - Git 2.30+;
 - driver NVIDIA atual. O CUDA Toolkit do sistema não é obrigatório porque a wheel do PyTorch inclui
   o runtime necessário.
@@ -59,7 +59,7 @@ gera o pacote destinado ao Partner Center; a instalação pública ocorre pela
 executável Linux CPU, o instalador Windows offline CPU, checksums separados, atalho da Store e
 arquivos-fonte em tags `v*`.
 
-O comando `--installer` requer Inno Setup 6 ou 7 e gera um pacote CUDA por usuário em
+O comando `--installer` requer Inno Setup 6 ou 7 e gera um pacote NVIDIA CUDA por usuário em
 `dist/installer/WhisperTranscriber-Setup-Windows-x64.exe`; `--installer-cpu` gera a variante CPU
 usada na release. Sem Authenticode, ele pode ser bloqueado pelo Smart App Control e não substitui
 o MSIX assinado da Store em computadores com essa política.
@@ -70,6 +70,7 @@ o MSIX assinado da Store em computadores com essa política.
 | --- | --- |
 | FFmpeg indisponível | Execute `uv run build.py --prepare-ffmpeg` e verifique rede/proxy. |
 | CUDA não detectada | Atualize o driver e valide `uv run python -c "import torch; print(torch.cuda.is_available())"`. |
+| GPU AMD/Intel não detectada | Confirme que o artefato contém, respectivamente, o runtime ROCm (Linux) ou XPU; uma wheel CUDA não usa essas GPUs. |
 | Pouca VRAM | Aguarde o fallback automático para CPU. |
 | Modelo não baixa | Verifique acesso HTTPS e espaço no cache do usuário. |
 | DLL ausente no build | Recrie o ambiente com `uv sync --reinstall`. |

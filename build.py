@@ -84,6 +84,7 @@ def verify_executable(
     executable: Path,
     *,
     require_cuda: bool = False,
+    require_runtime: str | None = None,
     allow_policy_block: bool = False,
 ) -> dict[str, str]:
     """Executa a autoverificação do artefato sem depender de uma janela de console."""
@@ -110,9 +111,18 @@ def verify_executable(
     if payload.get("status") != "ok":
         raise RuntimeError("A autoverificação do executável não retornou status ok.")
     device = str(payload.get("dispositivo", ""))
-    if require_cuda and not device.startswith("GPU CUDA"):
+    cuda_detected = device.startswith(("GPU NVIDIA CUDA", "GPU CUDA"))
+    if require_cuda and not cuda_detected:
         raise RuntimeError(f"O build deveria usar CUDA, mas detectou: {device or 'desconhecido'}")
+    runtime = str(payload.get("runtime_pytorch", ""))
+    if require_runtime and not runtime.casefold().startswith(require_runtime.casefold()):
+        raise RuntimeError(
+            f"O build deveria conter o runtime {require_runtime}, mas contém: "
+            f"{runtime or 'desconhecido'}"
+        )
     print(f"Executável verificado: {device}")
+    if runtime:
+        print(f"Runtime incorporado: {runtime}")
     return payload
 
 
@@ -402,12 +412,17 @@ def main() -> int:
         return 0
     if args.installer:
         executable = build(onefile=False)
-        verify_executable(executable, require_cuda=True, allow_policy_block=True)
+        verify_executable(
+            executable,
+            require_cuda=True,
+            require_runtime="NVIDIA CUDA",
+            allow_policy_block=True,
+        )
         build_installer(executable)
         return 0
     if args.installer_cpu:
         executable = build(onefile=False)
-        verify_executable(executable)
+        verify_executable(executable, require_runtime="CPU")
         build_installer(executable)
         return 0
     if args.msix_only:
@@ -422,7 +437,12 @@ def main() -> int:
         return 0
     if args.msix:
         executable = build(onefile=False)
-        verify_executable(executable, require_cuda=True, allow_policy_block=True)
+        verify_executable(
+            executable,
+            require_cuda=True,
+            require_runtime="NVIDIA CUDA",
+            allow_policy_block=True,
+        )
         package = build_msix(executable)
         verify_msix(package)
         return 0

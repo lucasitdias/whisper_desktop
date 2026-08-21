@@ -85,15 +85,46 @@ def test_verify_executable_le_json_windowed(monkeypatch, tmp_path: Path):
     def fake_run(command, **_kwargs):
         output = Path(command[command.index("--self-check-output") + 1])
         output.write_text(
-            json.dumps({"status": "ok", "dispositivo": "GPU CUDA: teste"}),
+            json.dumps(
+                {
+                    "status": "ok",
+                    "dispositivo": "GPU NVIDIA CUDA: GPU de teste",
+                    "runtime_pytorch": "NVIDIA CUDA 13.0",
+                }
+            ),
             encoding="utf-8",
         )
 
     monkeypatch.setattr(build.subprocess, "run", fake_run)
 
-    result = build.verify_executable(executable, require_cuda=True)
+    result = build.verify_executable(
+        executable, require_cuda=True, require_runtime="NVIDIA CUDA"
+    )
 
     assert result["status"] == "ok"
+
+
+def test_verify_executable_rejeita_runtime_incorreto(monkeypatch, tmp_path: Path):
+    executable = tmp_path / "WhisperTranscriber.exe"
+    executable.write_bytes(b"app")
+
+    def fake_run(command, **_kwargs):
+        output = Path(command[command.index("--self-check-output") + 1])
+        output.write_text(
+            json.dumps(
+                {
+                    "status": "ok",
+                    "dispositivo": "CPU (aceleração por GPU não disponível)",
+                    "runtime_pytorch": "CPU",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(build.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="deveria conter o runtime NVIDIA CUDA"):
+        build.verify_executable(executable, require_runtime="NVIDIA CUDA")
 
 
 def test_verify_executable_rejeita_build_cpu_quando_cuda_e_obrigatoria(

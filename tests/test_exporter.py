@@ -33,7 +33,17 @@ def test_renderiza_metadados_unicode_e_timestamp_superior_a_uma_hora():
     assert "# Transcrição de Áudio - reunião" in markdown
     assert "`reunião.m4a`" in markdown
     assert "01:01:01" in markdown
-    assert "GPU (CUDA)" in markdown
+    assert "GPU NVIDIA (CUDA)" in markdown
+
+
+def test_renderiza_backend_amd_rocm():
+    markdown = MarkdownExporter.render(make_result(device="rocm"))
+    assert "GPU AMD (ROCm)" in markdown
+
+
+def test_renderiza_backend_intel_xpu():
+    markdown = MarkdownExporter.render(make_result(device="xpu"))
+    assert "GPU Intel (XPU)" in markdown
     assert "Cobertura do Processamento:** 100%" in markdown
     assert "Confiança Média Estimada:** 93.7%" in markdown
     assert "não garante fidelidade palavra por palavra" in markdown
