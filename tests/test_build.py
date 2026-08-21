@@ -40,7 +40,7 @@ def test_render_msix_manifest_usa_identidade_da_store(tmp_path: Path):
 
     assert build.STORE_PACKAGE_NAME in content
     assert build.STORE_PUBLISHER in content
-    assert f'Version="{build.msix_version(build.__version__)}"' in content
+    assert f'Version="{build.STORE_PACKAGE_VERSION}"' in content
     assert 'Executable="WhisperTranscriber.exe"' in content
     assert 'Name="runFullTrust"' in content
 
@@ -73,7 +73,7 @@ def test_verify_msix_confere_conteudo_sem_extrair(tmp_path: Path):
     assert result == {
         "Name": build.STORE_PACKAGE_NAME,
         "Publisher": build.STORE_PUBLISHER,
-        "Version": build.msix_version(build.__version__),
+        "Version": build.STORE_PACKAGE_VERSION,
         "ProcessorArchitecture": "x64",
     }
 

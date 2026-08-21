@@ -23,6 +23,9 @@ STORE_PACKAGE_NAME = "WhisperTranscriber.WhisperTranscriberDesktop"
 STORE_PUBLISHER = "CN=B12A9AED-D3CC-463A-B3E5-ED71178CABF3"
 STORE_PUBLISHER_DISPLAY_NAME = "WhisperTranscriber"
 STORE_ID = "9PHWS6MM59BG"
+# A versão técnica do pacote precisa ser monotônica no Partner Center. Ela é
+# independente da versão pública 0.2.1 do aplicativo e da tag do GitHub.
+STORE_PACKAGE_VERSION = "1.2.4.0"
 MSIX_NAME = f"WhisperTranscriber-Desktop-{__version__}-Windows-x64.msix"
 
 
@@ -187,7 +190,7 @@ def render_msix_manifest(destination: Path) -> Path:
         PACKAGE_NAME=STORE_PACKAGE_NAME,
         PUBLISHER=STORE_PUBLISHER,
         PUBLISHER_DISPLAY_NAME=STORE_PUBLISHER_DISPLAY_NAME,
-        VERSION=msix_version(__version__),
+        VERSION=STORE_PACKAGE_VERSION,
         EXECUTABLE=f"{APP_EXECUTABLE}.exe",
     )
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -306,7 +309,7 @@ def verify_msix(package: Path) -> dict[str, str]:
         expected = {
             "Name": STORE_PACKAGE_NAME,
             "Publisher": STORE_PUBLISHER,
-            "Version": msix_version(__version__),
+            "Version": STORE_PACKAGE_VERSION,
             "ProcessorArchitecture": "x64",
         }
         actual = {key: identity.get(key, "") for key in expected}

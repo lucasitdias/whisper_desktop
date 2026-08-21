@@ -53,10 +53,14 @@ git diff --check
 ```
 
 `build.py` também reabre o MSIX e verifica identidade, versão, arquitetura,
-manifesto e executável antes de concluir. A versão final 0.2.1 gera
-`WhisperTranscriber-Desktop-0.2.1-Windows-x64.msix`, com versão MSIX
-`1.2.1.0`, 2.149.611.092 bytes e SHA-256
-`C9EF17B7F8D1C4B08608CC0B8BB7C9186E7BC3B3F841A658188222E71D53D0E3`.
+manifesto e executável antes de concluir. A versão pública final 0.2.1 gera
+`WhisperTranscriber-Desktop-0.2.1-Windows-x64.msix`, com versão técnica MSIX
+`1.2.4.0`, 2.149.611.092 bytes e SHA-256
+`199DF03410371E8C22D74B75EA49AC9278D59B2504AC63FCBBF3ADCD64ADB3F9`.
+
+A versão técnica do MSIX é um contador monotônico independente da versão pública do aplicativo.
+Ela foi avançada para substituir com segurança os pacotes de rascunho anteriores do Partner
+Center; isso não cria uma versão, tag ou release `0.2.4`.
 
 O Windows App Certification Kit executou os 15 testes estáticos aplicáveis com
 resultado `Pass`. O agregador do WACK não encerrou sozinho após os testes; por

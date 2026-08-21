@@ -16,7 +16,7 @@ checksums, atalho da Microsoft Store e publicação no GitHub Releases.
 ### Evidências locais entre 18 e 20/08/2026
 
 - Windows 11 x64, Python 3.11.16 e `ruff check .`: aprovado;
-- `pytest`: 36 testes aprovados;
+- `pytest`: 40 testes aprovados;
 - `uv run --no-sync python main.py --self-check`: aprovado;
 - dispositivo detectado: `GPU CUDA: NVIDIA GeForce RTX 5070 Laptop GPU`;
 - FFmpeg estático 8.1.2 baixado, SHA-256 verificado e executável validado;
@@ -44,8 +44,12 @@ checksums, atalho da Microsoft Store e publicação no GitHub Releases.
   executável CPU empacotado é validado novamente pelo runner Windows da release. Distribuição sem
   aviso do Smart App Control exige certificado Authenticode público, não disponível neste projeto.
 - GitHub Actions `Qualidade` da PR 2 (execução `32446586592`): aprovado em Windows e Linux;
-- build final MSIX 0.2.1: 2.149.611.092 bytes, identidade `1.2.1.0` verificada e SHA-256
-  `C9EF17B7F8D1C4B08608CC0B8BB7C9186E7BC3B3F841A658188222E71D53D0E3`;
+- GitHub Actions da PR 4 (execução `32452183744`): qualidade aprovada em Windows/Linux, build
+  Windows aprovado em 18m05s e build Linux aprovado em 9m28s; o instalador Windows e o pacote
+  Debian foram instalados, autoverificados e removidos em runners limpos, e os portáteis foram
+  autoverificados;
+- build final MSIX público 0.2.1: 2.149.611.092 bytes, identidade técnica `1.2.4.0` verificada e
+  SHA-256 `199DF03410371E8C22D74B75EA49AC9278D59B2504AC63FCBBF3ADCD64ADB3F9`;
 - build final do instalador Windows 0.2.1: 1.798.030.728 bytes e SHA-256
   `60D7CFA1D0098DE0715D108087A00D2CA4CC1CEB15FC7152358910AC99C06655`;
 - o Smart App Control local bloqueou o instalador final sem Authenticode antes da execução. Essa
