@@ -1,105 +1,182 @@
 # Validação de Qualidade e Segurança
 
-## 1. Portões automatizados
+## 1. Escopo da evidência
 
-Todo push e pull request deve passar em Windows e Linux:
+Este documento consolida a validação da versão **v0.2.1**, commit
+`7fe798c622e8a47c029edf529866268be9934ab8`.
 
-1. instalação do perfil CPU em Python 3.11 para qualidade e dos perfis CPU/CUDA nos builds;
-2. `ruff check .`;
-3. `pytest` com Qt offscreen;
-4. download/verificação do FFmpeg;
-5. `main.py --self-check`.
+- Release: <https://github.com/lucasitdias/whisper_desktop/releases/tag/v0.2.1>
+- Pull request final: <https://github.com/lucasitdias/whisper_desktop/pull/5>
+- Workflow final: <https://github.com/lucasitdias/whisper_desktop/actions/runs/32487388099>
 
-Tags `v*` adicionam Linux CPU, Windows CPU e Windows NVIDIA CUDA 13, autoverificação dos runtimes,
-instalação e remoção dos pacotes, checksums, atalho da Microsoft Store e GitHub Releases.
+## 2. Portões automatizados
 
-### Evidências locais entre 18 e 21/08/2026
+Todo push e pull request executa em Windows e Linux:
 
-- Windows 11 x64, Python 3.11.16 e `ruff check .`: aprovado;
-- `pytest`: 53 testes aprovados;
-- `uv run --no-sync python main.py --self-check`: aprovado;
-- dispositivo detectado: `GPU NVIDIA CUDA: NVIDIA GeForce RTX 5070 Laptop GPU`;
-- FFmpeg estático 8.1.2 baixado, SHA-256 verificado e executável validado;
-- regressão de build `--windowed`: `stdout`/`stderr` ausentes são substituídos por fluxos graváveis,
-  eliminando a falha `'NoneType' object has no attribute 'write'` durante o download do modelo;
-- transcrição real de uma amostra de 60 segundos do MP3 do usuário: aprovada em CUDA, com 20
-  segmentos e Markdown de 829 caracteres;
-- versão 0.2.0 com timestamps por palavra: 60 de 60 segundos processados (100%), 151 palavras,
-  confiança média estimada de 88,4%, 14 palavras abaixo de 50% e última fala em 00:59,780;
-- regressão de qualidade de 21/08/2026 com `beam_size=5`, `best_of=5`, contexto anterior e
-  timestamps por palavra: a mesma amostra de 60 segundos produziu texto idêntico em GPU e CPU,
-  22 segmentos, 146 palavras e último timestamp em 00:59,980. A RTX 5070 levou 13,71 s e obteve
-  confiança média estimada de 90,83%; a CPU levou 51,37 s e obteve 90,80%;
-- testes automatizados cobrem prioridade e identificação nominal de NVIDIA CUDA, AMD ROCm, Intel
-  XPU, erros de driver e fallback CPU. A disponibilidade real depende do runtime PyTorch contido
-  em cada variante do instalador;
-- cancelamento real durante o carregamento: aprovado sem resultado parcial nem sinal de falha;
-- cancelamento real durante a inferência do MP3 longo: aprovado após 15 segmentos, com liberação
-  cooperativa da thread e sem resultado parcial;
-- build CUDA `--onedir`: 12.119 arquivos e 3.326.602.046 bytes;
-- instalador Windows x64 0.2.0: `WhisperTranscriber-Setup-Windows-x64.exe`, 1.798.023.653
-  bytes;
-- SHA-256 do instalador 0.2.0:
-  `09078D4B56A4831ACE5955651A137D2628C0662984949FE78E26C5C2A563D65E`;
-- instalação silenciosa por usuário: aprovada com código de saída 0, executável e desinstalador;
-- aplicativo instalado `--self-check-output`: aprovado com FFmpeg incorporado e RTX 5070 em CUDA;
-- na versão 0.1.1, o executável local não assinado foi bloqueado pelo Smart App Control, mas o
-  instalador e o aplicativo instalado foram aceitos. O artefato permanece sem Authenticode por
-  falta de certificado de publicação;
-- na versão 0.2.0, o Smart App Control bloqueou o novo hash local do instalador e do executável
-  antes da inicialização. O código-fonte CUDA e a estrutura completa do pacote foram validados; o
-  executável CPU empacotado é validado novamente pelo runner Windows da release. Distribuição sem
-  aviso do Smart App Control exige certificado Authenticode público, não disponível neste projeto.
-- GitHub Actions `Qualidade` da PR 2 (execução `32446586592`): aprovado em Windows e Linux;
-- GitHub Actions da PR 4 (execução `32452183744`): qualidade aprovada em Windows/Linux, build
-  Windows aprovado em 18m05s e build Linux aprovado em 9m28s; o instalador Windows e o pacote
-  Debian foram instalados, autoverificados e removidos em runners limpos, e os portáteis foram
-  autoverificados;
-- build final MSIX público 0.2.1: 2.149.611.092 bytes, identidade técnica `1.2.4.0` verificada e
-  SHA-256 `199DF03410371E8C22D74B75EA49AC9278D59B2504AC63FCBBF3ADCD64ADB3F9`;
-- candidato CUDA recompilado com o código atual: 1.798.054.750 bytes e SHA-256
-  `7F8AD560E93AACDCE97EF3350F241A5F2C50A9D931F48E5BF563B13C1ADEC79B`. A inspeção confirmou
-  `torch_cuda.dll`, CUDA 13, cuBLAS e cuDNN no pacote;
-- executável `--onedir` desse mesmo candidato: autoverificação aprovada em 21/08/2026, com FFmpeg
-  incorporado, `NVIDIA CUDA 13.0` e `NVIDIA GeForce RTX 5070 Laptop GPU`;
-- o Smart App Control local bloqueou esse instalador sem Authenticode antes da execução. Essa
-  modalidade só é aprovada em CI limpo; para computadores com a política ativa, o aceite exige o
-  MSIX assinado pela Microsoft Store.
+1. Python 3.11;
+2. perfil PyTorch CPU reproduzível;
+3. `ruff check .`;
+4. 55 testes `pytest`/`pytest-qt` com Qt offscreen;
+5. download e verificação do FFmpeg;
+6. `main.py --self-check`.
 
-## 2. Cobertura comportamental
+A tag `v0.2.1` acrescentou:
 
-- resolução e precedência do FFmpeg;
-- checksum inválido e extração sem path traversal;
-- exportação Unicode, timestamps, vazio e escrita atômica;
-- worker CPU, CUDA, ROCm, XPU, falta de memória, cancelamento cooperativo, parâmetros de qualidade,
-  sinais e erros;
-- seleção MP3/M4A, thread não bloqueante, botão de cancelamento, estados, editor, prévia, cópia e
-  salvamento;
-- cobertura integral, confiança por palavra e marcadores de baixa confiança para revisão.
+- build Windows NVIDIA CUDA 13;
+- build Windows CPU instalável e portátil;
+- build Linux CPU portátil e DEB;
+- instalação, autodiagnóstico e desinstalação dos dois instaladores Windows;
+- instalação, autodiagnóstico e remoção do DEB;
+- autodiagnóstico dos portáteis;
+- geração de três manifestos SHA-256;
+- publicação de nove anexos.
 
-## 3. Controles de segurança
+Resultado do workflow final: **aprovado**.
 
-- nenhuma execução por shell ou interpolação de comandos;
-- URLs fixas e SHA-256 fixado para binários externos;
-- nenhuma extração geral de arquivos compactados;
+## 3. Matriz de testes
+
+### FFmpeg
+
+- precedência PyInstaller, checkout, `PATH` e cache;
+- plataforma não suportada;
+- checksum correto/incorreto;
+- download atômico;
+- extração restrita sem path traversal;
+- validação por `ffmpeg -version`;
+- fallback e cache verificado.
+
+### Worker Whisper
+
+- CUDA, ROCm, XPU e CPU simulados;
+- nome real do dispositivo e runtime incorporado;
+- parâmetros de qualidade;
+- progresso por timestamps;
+- segmentos incrementais;
+- palavras/confiança;
+- falta de memória e reinício CPU;
+- erro de driver;
+- falha de download;
+- cancelamento antes/durante inferência;
+- sinais `completed`, `failed` e `cancelled`.
+
+### Exportador
+
+- Unicode e nomes com caracteres especiais;
+- remoção de caminho absoluto;
+- duração e timestamps acima de uma hora;
+- segmentos vazios;
+- cobertura, confiança e baixa confiança;
+- escrita UTF-8 atômica e limpeza após falha.
+
+### Interface
+
+- seleção por diálogo e drag-and-drop;
+- extensões em diferentes caixas;
+- estados dos botões;
+- execução não bloqueante;
+- botão de cancelamento;
+- proteção de fechamento;
+- abas Markdown/Visualização;
+- sincronização após edição;
+- cópia, salvamento, extensão `.md` e confirmação de sobrescrita;
+- mensagens em pt-BR.
+
+### Build e arquivos do projeto
+
+- identidade/versão do MSIX;
+- nomes distintos dos instaladores NVIDIA/CPU;
+- inclusão dos downloads/checksums no workflow;
+- pacote DEB e atalho da Store;
+- ausência de padrões de branch não permitidos no CI.
+
+## 4. Evidências de inferência real
+
+Validação local em Windows 11 com NVIDIA GeForce RTX 5070 Laptop GPU:
+
+- FFmpeg estático 8.1.2 validado;
+- runtime `NVIDIA CUDA 13.0` detectado;
+- MP3 autorizado de 60 segundos processado integralmente;
+- cancelamento durante carregamento aprovado sem resultado parcial;
+- cancelamento durante inferência de áudio longo aprovado após saída incremental;
+- GPU e CPU produziram o mesmo texto na amostra de regressão;
+- 22 segmentos, 146 palavras e última fala em 00:59,980;
+- GPU: 13,71 s e confiança média estimada de 90,83%;
+- CPU: 51,37 s e confiança média estimada de 90,80%.
+
+Essa evidência demonstra equivalência na amostra, não garantia de fidelidade universal. M4A real
+continua fazendo parte do aceite manual por formato.
+
+## 5. Artefatos finais da release
+
+| Artefato | Bytes | SHA-256 verificado após download |
+| --- | ---: | --- |
+| `WhisperTranscriber-Setup-Windows-x64.exe` | 1.798.357.601 | `88d2739535156d679f36afdae5a2187b671ddc76416080c9b62d20dd9124fbbd` |
+| `WhisperTranscriber-Setup-Windows-x64-CPU.exe` | 220.426.772 | `6b00c4d26a8d0686511f51090fb43e36074a327ebd039ca10f982935ae83df96` |
+| `WhisperTranscriber-Windows-x64.exe` | 317.271.727 | `4824f87090e76b9f6e1800f005224ab44b80db91cd78f5c18807e4a5b8b7a0f5` |
+| `WhisperTranscriber-Setup-Linux-x64.deb` | 612.959.506 | `9161ae8e30a9da0fffe62876d2a7560697ed8891f9de8c902c8cf6f85061e2db` |
+| `WhisperTranscriber-Linux-x64` | 630.137.840 | `5b49c278a2663d46826afb7a8ad21ff2fb135fc251c4e1a4c4fc32705534f0ed` |
+
+Auditoria pós-publicação:
+
+- 9/9 anexos presentes;
+- cinco binários baixados da própria release;
+- todos os hashes recalculados localmente;
+- todos os hashes iguais aos três manifestos publicados;
+- atalho da Store contendo o produto `9PHWS6MM59BG`.
+
+## 6. MSIX da Microsoft Store
+
+- versão pública: 0.2.1;
+- versão técnica: `1.2.4.0`;
+- tamanho do candidato: 2.149.611.092 bytes;
+- SHA-256: `199DF03410371E8C22D74B75EA49AC9278D59B2504AC63FCBBF3ADCD64ADB3F9`;
+- identidade, arquitetura, manifesto e executável verificados;
+- 15 testes estáticos aplicáveis do WACK com resultado `Pass`.
+
+Pendente de evidência externa até publicação efetiva:
+
+- página permitindo aquisição;
+- instalação pela Microsoft Store;
+- atualização e desinstalação pelo canal Store.
+
+## 7. Controles de segurança
+
+- nenhum subprocesso usa `shell=True`;
+- URLs e SHA-256 do FFmpeg são fixados;
+- extração limitada ao membro esperado;
+- arquivos temporários usam substituição atômica;
 - caminhos absolutos não entram no Markdown;
 - áudio e texto permanecem locais;
-- pesos, áudios, binários e ambientes são ignorados pelo Git;
+- pesos, áudios, binários e ambientes são ignorados;
 - nenhuma sobrescrita pela GUI sem confirmação;
-- dependências de desenvolvimento são travadas por `uv.lock`.
+- cancelamento não força encerramento da thread;
+- dependências de desenvolvimento são travadas por `uv.lock`;
+- CI usa permissões `contents: read`, elevando para `write` apenas no job de release.
 
-## 4. Aceitação manual
+## 8. Smart App Control e assinatura
 
-- abrir `uv run main.py` e verificar o tema, textos e High-DPI;
-- transcrever um MP3 e um M4A reais fornecidos pelo usuário;
-- confirmar que a GUI continua responsiva e mostra progresso/trechos;
-- confirmar CUDA na RTX 5070 e executar o artefato CPU para validar fallback;
-- editar a fonte, conferir a prévia, copiar e salvar sem sobrescrita silenciosa;
-- instalar o Windows pela Microsoft Store após a certificação e executar `--self-check-output`;
-- abrir o executável Linux da release e executar `--self-check`;
-- instalar o pacote Windows offline da release em máquina sem política de bloqueio e confirmar o
-  `--self-check-output`; em máquinas com Smart App Control, usar a versão assinada da Store;
-- transcrever um M4A real, pois a regressão local desta versão usou MP3.
+Os instaladores Windows GitHub não possuem Authenticode. Em runners Windows limpos, os pacotes
+foram instalados, autoverificados e removidos. Em uma máquina local com Smart App Control ativo, o
+Windows pode bloquear o novo hash antes da inicialização com código 4551.
 
-O modelo real não é baixado no CI. Essa aceitação permanece opt-in para evitar custo, tráfego e uso
-de áudio não autorizado.
+Esse comportamento não deve ser contornado desativando a proteção. A solução confiável é:
+
+- assinatura Authenticode por identidade reconhecida; ou
+- aquisição do MSIX assinado pela Microsoft Store após publicação.
+
+## 9. Aceitação manual
+
+- [x] abrir a GUI em tema escuro e High-DPI;
+- [x] selecionar MP3 por diálogo/drag-and-drop;
+- [x] manter a GUI responsiva durante inferência;
+- [x] identificar RTX 5070 como NVIDIA CUDA;
+- [x] comparar a mesma amostra em GPU/CPU;
+- [x] cancelar carregamento e inferência sem resultado parcial;
+- [x] editar, visualizar, copiar e salvar Markdown;
+- [x] validar instaladores Windows em CI limpo;
+- [x] validar portátil/DEB Linux em CI limpo;
+- [x] conferir todos os anexos e hashes da release;
+- [ ] transcrever M4A real autorizado na versão final;
+- [ ] adquirir e instalar pela Store depois da publicação Microsoft.
+
+O modelo real não é baixado no CI para evitar custo, tráfego e uso de áudio não autorizado.
