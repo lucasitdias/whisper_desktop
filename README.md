@@ -9,7 +9,9 @@ Markdown editável com metadados, texto integral e timestamps.
 | Plataforma | Download | Observação |
 | --- | --- | --- |
 | Windows 10/11 x64 | [Instalar pela Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG) | Canal recomendado: pacote MSIX validado e assinado pela Microsoft após a certificação. |
-| Linux x86-64 | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Use o arquivo `WhisperTranscriber-Linux-x64` e confira `SHA256SUMS.txt`. |
+| Windows 10/11 x64 offline | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Instalador `WhisperTranscriber-Setup-Windows-x64.exe` ou portátil `WhisperTranscriber-Windows-x64.exe`; confira `SHA256SUMS-Windows.txt`. |
+| Debian/Ubuntu x86-64 offline | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Instale `WhisperTranscriber-Setup-Linux-x64.deb` e confira `SHA256SUMS-Linux.txt`. |
+| Linux x86-64 portátil | [Baixar a release mais recente](https://github.com/lucasitdias/whisper_desktop/releases/latest) | Use `WhisperTranscriber-Linux-x64` e confira `SHA256SUMS-Linux.txt`. |
 | Código-fonte | [Releases do projeto](https://github.com/lucasitdias/whisper_desktop/releases) | Cada release oferece arquivos `.zip` e `.tar.gz` gerados pelo GitHub. |
 
 A release também inclui `Instalar-WhisperTranscriber-Windows.url`, que abre a página oficial do
@@ -93,15 +95,22 @@ Pacote Windows para envio à Microsoft Store:
 uv run build.py --msix
 ```
 
-Instalador Windows Inno Setup para testes internos:
+Instalador Windows CUDA para testes locais:
 
 ```powershell
 uv run build.py --installer
 ```
 
-O instalador Inno Setup e o executável Windows produzidos localmente não possuem Authenticode e
-podem ser bloqueados pelo Smart App Control. Eles não devem ser publicados como alternativa ao
-pacote assinado da Store, e a proteção do Windows não deve ser desativada.
+Instalador Windows CPU usado no download offline da release:
+
+```powershell
+uv run build.py --installer-cpu
+```
+
+O instalador offline inclui a aplicação, PyTorch CPU e FFmpeg; somente o modelo `turbo` é baixado
+uma vez no primeiro uso. Ele é compilado e autoverificado em um runner Windows limpo, mas não
+possui Authenticode e pode ser bloqueado pelo Smart App Control. Nesse caso, use a Microsoft Store;
+a proteção do Windows não deve ser desativada.
 
 ## Estrutura
 

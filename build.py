@@ -365,6 +365,11 @@ def main() -> int:
         help="gera o aplicativo CUDA em diretório e o instalador Windows",
     )
     mode.add_argument(
+        "--installer-cpu",
+        action="store_true",
+        help="gera o instalador Windows offline com PyTorch CPU para distribuição",
+    )
+    mode.add_argument(
         "--installer-only",
         action="store_true",
         help="compila apenas o instalador usando o diretório dist existente",
@@ -395,6 +400,11 @@ def main() -> int:
     if args.installer:
         executable = build(onefile=False)
         verify_executable(executable, require_cuda=True, allow_policy_block=True)
+        build_installer(executable)
+        return 0
+    if args.installer_cpu:
+        executable = build(onefile=False)
+        verify_executable(executable)
         build_installer(executable)
         return 0
     if args.msix_only:

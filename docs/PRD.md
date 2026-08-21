@@ -27,10 +27,11 @@ voz e entrevistas em Português do Brasil.
 - Interface e mensagens inteiramente em pt-BR, com tema escuro e suporte High-DPI.
 - Arquivos de áudio nunca são enviados a serviços externos.
 - Windows 10/11 x64 e Linux x86_64 são os alvos suportados.
-- O executável Linux portátil usa `--onefile --windowed`. No Windows, o build oficial usa
-  `--onedir` dentro de um MSIX enviado à Microsoft Store para validação e assinatura; o Inno Setup
-  sem Authenticode permanece somente para testes internos. Todos incluem FFmpeg, enquanto o modelo
-  permanece no cache do usuário.
+- O executável Linux portátil usa `--onefile --windowed`. No Windows, o canal recomendado usa
+  `--onedir` dentro de um MSIX enviado à Microsoft Store para validação e assinatura. A release
+  também oferece instalador offline CPU, gerado com Inno Setup e autoverificado no CI. Todos
+  incluem FFmpeg, enquanto o modelo permanece no cache do usuário; sem Authenticode, políticas
+  como Smart App Control podem exigir o uso da Store.
 - Python 3.11, `uv`, PySide6, `openai-whisper==20250625`, PyTorch 2.12.1 e PyInstaller 6.
 - O build de desenvolvimento e o MSIX Windows suportam CUDA 13.0; a release Linux usa CPU para
   portabilidade.

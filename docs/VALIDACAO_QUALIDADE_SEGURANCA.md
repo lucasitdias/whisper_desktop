@@ -10,8 +10,8 @@ Todo push e pull request deve passar em Windows e Linux:
 4. download/verificação do FFmpeg;
 5. `main.py --self-check`.
 
-Tags `v*` adicionam build PyInstaller Linux CPU, autoverificação, checksum, atalho da Microsoft
-Store e publicação no GitHub Releases.
+Tags `v*` adicionam builds CPU Linux e Windows, autoverificação, instalador offline Inno Setup,
+checksums, atalho da Microsoft Store e publicação no GitHub Releases.
 
 ### Evidências locais entre 18 e 20/08/2026
 
@@ -43,21 +43,14 @@ Store e publicação no GitHub Releases.
   antes da inicialização. O código-fonte CUDA e a estrutura completa do pacote foram validados; o
   executável CPU empacotado é validado novamente pelo runner Windows da release. Distribuição sem
   aviso do Smart App Control exige certificado Authenticode público, não disponível neste projeto.
-- MSIX Windows x64 0.2.1: `WhisperTranscriber-Desktop-0.2.1-Windows-x64.msix`,
-  2.149.620.884 bytes e SHA-256
-  `890821823700DB46047D8ADE1CB648065D318C1F139F05BF546F40F941FEF179`;
-- identidade MSIX `WhisperTranscriber.WhisperTranscriberDesktop`, versão `1.2.1.0`, arquitetura x64
-  e executável principal verificados pelo build;
-- o Partner Center aceitou e marcou o MSIX 0.2.1 como `Validated`;
-- MSIX Windows x64 0.2.2: `WhisperTranscriber-Desktop-0.2.2-Windows-x64.msix`,
-  2.149.620.732 bytes, versão `1.2.2.0` e SHA-256
-  `47CAF48B7B39D4CC4152624E42E0270C08CE325C3FC3CF96D6424D36BE26C1BA`;
-- o build 0.2.2 executou a autoverificação do binário empacotado em CUDA e verificou identidade,
-  arquitetura, manifesto e executável do MSIX antes do upload ao Partner Center;
 - GitHub Actions `Qualidade` da PR 2 (execução `32446586592`): aprovado em Windows e Linux;
-- GitHub Actions da release v0.2.1 (execução `32446743858`): build, autoverificação e publicação
-  Linux aprovados; executável de 601 MB com SHA-256
-  `91d7acac3b8cde80ec57eca39a36f779f7d80eb11befb20aec0bafbf6f5ab612`.
+- build final MSIX 0.2.1: 2.149.611.092 bytes, identidade `1.2.1.0` verificada e SHA-256
+  `C9EF17B7F8D1C4B08608CC0B8BB7C9186E7BC3B3F841A658188222E71D53D0E3`;
+- build final do instalador Windows 0.2.1: 1.798.030.728 bytes e SHA-256
+  `60D7CFA1D0098DE0715D108087A00D2CA4CC1CEB15FC7152358910AC99C06655`;
+- o Smart App Control local bloqueou o instalador final sem Authenticode antes da execução. Essa
+  modalidade só é aprovada em CI limpo; para computadores com a política ativa, o aceite exige o
+  MSIX assinado pela Microsoft Store.
 
 ## 2. Cobertura comportamental
 
@@ -89,6 +82,8 @@ Store e publicação no GitHub Releases.
 - editar a fonte, conferir a prévia, copiar e salvar sem sobrescrita silenciosa;
 - instalar o Windows pela Microsoft Store após a certificação e executar `--self-check-output`;
 - abrir o executável Linux da release e executar `--self-check`;
+- instalar o pacote Windows offline da release em máquina sem política de bloqueio e confirmar o
+  `--self-check-output`; em máquinas com Smart App Control, usar a versão assinada da Store;
 - transcrever um M4A real, pois a regressão local desta versão usou MP3.
 
 O modelo real não é baixado no CI. Essa aceitação permanece opt-in para evitar custo, tráfego e uso

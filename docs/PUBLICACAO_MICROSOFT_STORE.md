@@ -1,9 +1,13 @@
 # Publicação na Microsoft Store
 
-Este projeto distribui a versão Windows pela Microsoft Store. Esse é o canal
+Este projeto distribui a versão Windows preferencialmente pela Microsoft Store. Esse é o canal
 recomendado porque a Microsoft valida e assina o pacote MSIX durante a
 certificação. O arquivo MSIX gerado localmente é destinado ao Partner Center e
 não deve ser oferecido como instalador direto ao usuário final.
+
+O GitHub Releases também contém um instalador offline CPU autoverificado. Ele inclui FFmpeg e as
+dependências da aplicação, mas baixa o modelo `turbo` no primeiro uso e, sem Authenticode, pode ser
+bloqueado por políticas que aceitam somente código assinado.
 
 - Página pública: <https://apps.microsoft.com/detail/9PHWS6MM59BG>
 - Releases e Linux: <https://github.com/lucasitdias/whisper_desktop/releases/latest>
@@ -49,12 +53,10 @@ git diff --check
 ```
 
 `build.py` também reabre o MSIX e verifica identidade, versão, arquitetura,
-manifesto e executável antes de concluir. A versão 0.2.2 gera
-`WhisperTranscriber-Desktop-0.2.2-Windows-x64.msix`, com versão MSIX
-`1.2.2.0`.
-
-O pacote 0.2.2 possui 2.149.620.732 bytes e SHA-256
-`47CAF48B7B39D4CC4152624E42E0270C08CE325C3FC3CF96D6424D36BE26C1BA`.
+manifesto e executável antes de concluir. A versão final 0.2.1 gera
+`WhisperTranscriber-Desktop-0.2.1-Windows-x64.msix`, com versão MSIX
+`1.2.1.0`, 2.149.611.092 bytes e SHA-256
+`C9EF17B7F8D1C4B08608CC0B8BB7C9186E7BC3B3F841A658188222E71D53D0E3`.
 
 O Windows App Certification Kit executou os 15 testes estáticos aplicáveis com
 resultado `Pass`. O agregador do WACK não encerrou sozinho após os testes; por
@@ -78,8 +80,8 @@ empacotado. A justificativa usada no Partner Center deve explicar:
   Store.
 - Depois da certificação, a Microsoft assina e distribui o pacote pela página do
   produto.
-- O GitHub Releases não deve publicar o executável Windows sem Authenticode.
-  Em vez disso, publica um atalho para a Store. Builds Linux podem continuar
-  sendo distribuídos diretamente com SHA-256.
+- O GitHub Releases publica um instalador Windows offline autoverificado e deixa explícita a
+  ausência de Authenticode, além do atalho para a Store. Em máquinas com Smart App Control, o
+  canal Store assinado continua obrigatório. Builds Linux são distribuídos com SHA-256.
 - O áudio e a transcrição permanecem locais; apenas o modelo Whisper é baixado
   na primeira utilização.

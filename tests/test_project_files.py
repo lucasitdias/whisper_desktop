@@ -34,6 +34,17 @@ def test_release_publica_todas_as_opcoes_suportadas():
     )
 
     assert "WhisperTranscriber-Linux-x64" in workflow
-    assert "SHA256SUMS.txt" in workflow
+    assert "WhisperTranscriber-Setup-Linux-x64.deb" in workflow
+    assert "WhisperTranscriber-Setup-Windows-x64.exe" in workflow
+    assert "WhisperTranscriber-Windows-x64.exe" in workflow
+    assert "--installer-cpu" in workflow
+    assert "Instalar, verificar e remover o instalador offline" in workflow
+    assert "self-check-instalado.json" in workflow
+    assert "dpkg --install" in workflow
+    assert "dpkg --remove" in workflow
+    assert "pull_request:" in workflow
+    assert "if: startsWith(github.ref, 'refs/tags/v')" in workflow
+    assert "SHA256SUMS-Linux.txt" in workflow
+    assert "SHA256SUMS-Windows.txt" in workflow
     assert "Instalar-WhisperTranscriber-Windows.url" in workflow
     assert "https://apps.microsoft.com/detail/9PHWS6MM59BG" in workflow

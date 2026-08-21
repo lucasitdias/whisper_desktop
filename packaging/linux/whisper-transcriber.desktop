@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Whisper Transcriber Desktop
+Comment=Transcrição local de MP3 e M4A para Markdown
+Exec=/usr/bin/whisper-transcriber
+Icon=whisper-transcriber
+Terminal=false
+Categories=AudioVideo;Audio;

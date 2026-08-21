@@ -3,12 +3,14 @@ name: Publicar downloads
 on:
   push:
     tags: ["v*"]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  build-linux:
     name: Build Linux x64
     runs-on: ubuntu-latest
     env:
@@ -19,7 +21,7 @@ jobs:
       - name: Instalar bibliotecas Qt no Linux
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libegl1
+          sudo apt-get install --yes libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
       - run: uv python install 3.11
       - run: uv venv --python 3.11
       - run: uv pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
@@ -28,21 +30,92 @@ jobs:
       - name: Nomear artefato e gerar checksum
         run: |
           mv dist/WhisperTranscriber dist/WhisperTranscriber-Linux-x64
-          sha256sum dist/WhisperTranscriber-Linux-x64 > dist/SHA256SUMS.txt
       - name: Autoverificar executável
         run: ./dist/WhisperTranscriber-Linux-x64 --self-check
+      - name: Gerar instalador offline DEB
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p dist/deb-root/DEBIAN dist/deb-root/opt/whisper-transcriber dist/deb-root/usr/bin dist/deb-root/usr/share/applications dist/deb-root/usr/share/icons/hicolor/256x256/apps
+          sed "s/@VERSION@/${version}/g" packaging/linux/control.in > dist/deb-root/DEBIAN/control
+          cp dist/WhisperTranscriber-Linux-x64 dist/deb-root/opt/whisper-transcriber/WhisperTranscriber
+          ln -s /opt/whisper-transcriber/WhisperTranscriber dist/deb-root/usr/bin/whisper-transcriber
+          cp packaging/linux/whisper-transcriber.desktop dist/deb-root/usr/share/applications/
+          cp assets/icon.png dist/deb-root/usr/share/icons/hicolor/256x256/apps/whisper-transcriber.png
+          dpkg-deb --build --root-owner-group dist/deb-root dist/WhisperTranscriber-Setup-Linux-x64.deb
+      - name: Instalar, verificar e remover o pacote DEB
+        run: |
+          sudo dpkg --install dist/WhisperTranscriber-Setup-Linux-x64.deb
+          /usr/bin/whisper-transcriber --self-check
+          sudo dpkg --remove whisper-transcriber-desktop
+      - name: Gerar checksums Linux
+        run: sha256sum dist/WhisperTranscriber-Linux-x64 dist/WhisperTranscriber-Setup-Linux-x64.deb > dist/SHA256SUMS-Linux.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: Downloads-WhisperTranscriber
           path: |
             dist/WhisperTranscriber-Linux-x64
-            dist/SHA256SUMS.txt
+            dist/WhisperTranscriber-Setup-Linux-x64.deb
+            dist/SHA256SUMS-Linux.txt
             store/Instalar-WhisperTranscriber-Windows.url
+          if-no-files-found: error
+
+  build-windows-offline:
+    name: Build Windows offline x64
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.0.1
+      - run: uv python install 3.11
+      - run: uv venv --python 3.11
+      - run: uv pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
+      - run: uv pip install -r requirements/cpu.txt
+      - name: Instalar Inno Setup
+        run: choco install innosetup --yes --no-progress
+      - name: Gerar e autoverificar instalador offline
+        run: uv run --no-sync python build.py --installer-cpu
+      - name: Instalar, verificar e remover o instalador offline
+        shell: pwsh
+        run: |
+          $destino = Join-Path $env:RUNNER_TEMP "WhisperTranscriber-Validacao"
+          $instalador = "dist/installer/WhisperTranscriber-Setup-Windows-x64.exe"
+          $instalacao = Start-Process -FilePath $instalador -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',("/DIR=$destino")) -WindowStyle Hidden -Wait -PassThru
+          if ($instalacao.ExitCode -ne 0) { throw "Instalação falhou: $($instalacao.ExitCode)" }
+          $executavel = Join-Path $destino "WhisperTranscriber.exe"
+          $resultado = Join-Path $env:RUNNER_TEMP "self-check-instalado.json"
+          $aplicativo = Start-Process -FilePath $executavel -ArgumentList @('--self-check-output',$resultado) -WindowStyle Hidden -Wait -PassThru
+          if ($aplicativo.ExitCode -ne 0) { throw "Aplicativo instalado falhou: $($aplicativo.ExitCode)" }
+          $selfCheck = Get-Content -Raw -LiteralPath $resultado | ConvertFrom-Json
+          if ($selfCheck.status -ne 'ok') { throw "Self-check instalado não retornou ok." }
+          $desinstalador = Join-Path $destino "unins000.exe"
+          $remocao = Start-Process -FilePath $desinstalador -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -WindowStyle Hidden -Wait -PassThru
+          if ($remocao.ExitCode -ne 0) { throw "Desinstalação falhou: $($remocao.ExitCode)" }
+      - name: Gerar e autoverificar executável portátil
+        run: |
+          uv run --no-sync python build.py
+          Move-Item -LiteralPath dist/WhisperTranscriber.exe -Destination dist/WhisperTranscriber-Windows-x64.exe
+      - name: Gerar checksum Windows
+        shell: pwsh
+        run: |
+          $instalador = "dist/installer/WhisperTranscriber-Setup-Windows-x64.exe"
+          $portatil = "dist/WhisperTranscriber-Windows-x64.exe"
+          $hashInstalador = (Get-FileHash -Algorithm SHA256 -LiteralPath $instalador).Hash.ToLowerInvariant()
+          $hashPortatil = (Get-FileHash -Algorithm SHA256 -LiteralPath $portatil).Hash.ToLowerInvariant()
+          @("$hashInstalador  WhisperTranscriber-Setup-Windows-x64.exe", "$hashPortatil  WhisperTranscriber-Windows-x64.exe") | Set-Content -Encoding ascii dist/installer/SHA256SUMS-Windows.txt
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: Instalador-Offline-Windows
+          path: |
+            dist/installer/WhisperTranscriber-Setup-Windows-x64.exe
+            dist/installer/SHA256SUMS-Windows.txt
+            dist/WhisperTranscriber-Windows-x64.exe
           if-no-files-found: error
 
   release:
     name: Criar GitHub Release
-    needs: build
+    needs: [build-linux, build-windows-offline]
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8.0.1
@@ -55,10 +128,16 @@ jobs:
           body: |
             ## Downloads
 
-            - **Windows 10/11 x64:** [instalar pela Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG), ou baixar `Instalar-WhisperTranscriber-Windows.url` para abrir a mesma página.
-            - **Linux x86-64:** baixar `WhisperTranscriber-Linux-x64` e validar com `SHA256SUMS.txt`.
+            - **Windows 10/11 x64 (recomendado):** [instalar pela Microsoft Store](https://apps.microsoft.com/detail/9PHWS6MM59BG), ou baixar `Instalar-WhisperTranscriber-Windows.url` para abrir a mesma página.
+            - **Windows 10/11 x64 (instalador offline):** baixar `WhisperTranscriber-Setup-Windows-x64.exe` e validar com `SHA256SUMS-Windows.txt`.
+            - **Windows 10/11 x64 (portátil):** baixar `WhisperTranscriber-Windows-x64.exe` e validar com `SHA256SUMS-Windows.txt`.
+            - **Linux Debian/Ubuntu x86-64 (instalador offline):** baixar `WhisperTranscriber-Setup-Linux-x64.deb` e validar com `SHA256SUMS-Linux.txt`.
+            - **Linux x86-64 (portátil):** baixar `WhisperTranscriber-Linux-x64` e validar com `SHA256SUMS-Linux.txt`.
             - **Código-fonte:** usar os arquivos `.zip` ou `.tar.gz` gerados pelo GitHub abaixo.
 
-            A versão Windows é distribuída pela Store para receber a assinatura
-            confiável da Microsoft. O MSIX não assinado do Partner Center não é
-            oferecido como instalador direto.
+            Os pacotes incluem aplicação, PyTorch CPU e FFmpeg. O modelo `turbo`
+            é baixado uma vez no primeiro uso.
+
+            A Microsoft Store é o canal indicado para computadores com Smart App
+            Control. O instalador offline é autoverificado no CI, mas não possui
+            Authenticode e pode ser bloqueado por políticas que exigem assinatura.

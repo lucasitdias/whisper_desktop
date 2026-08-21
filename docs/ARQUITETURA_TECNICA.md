@@ -74,13 +74,15 @@ duração decodificada, último timestamp de fala, confiança média e quantidad
 
 O PyInstaller recebe `--windowed`, `--add-binary`, `--collect-all whisper` e `--collect-all torch`.
 O Linux portátil usa `--onefile`; o MSIX Windows usa `--onedir` para manter DLLs CUDA junto ao
-executável. O build deve ser executado separadamente em Windows e Linux; não existe
-cross-compilation. Tags `v*` publicam o executável Linux CPU, checksum, atalho da Store e os
-arquivos-fonte gerados pelo GitHub.
+executável. O instalador Windows offline também usa `--onedir`, mas o CI instala PyTorch CPU para
+reduzir o pacote e ampliar a compatibilidade. O build deve ser executado separadamente em Windows
+e Linux; não existe cross-compilation. Tags `v*` publicam o executável Linux CPU, o instalador
+Windows offline CPU, checksums, atalho da Store e os arquivos-fonte gerados pelo GitHub.
 
 No canal oficial Windows, o diretório PyInstaller é empacotado como MSIX com a identidade reservada
-no Partner Center. A Microsoft valida, assina e distribui o pacote pela Store. O Inno Setup pode
-compactar o mesmo diretório para testes internos, mas não é publicado sem Authenticode. O aplicativo
+no Partner Center. A Microsoft valida, assina e distribui o pacote pela Store. Como alternativa
+direta, o Inno Setup compacta o mesmo aplicativo CPU em um instalador offline autoverificado. Ele
+não substitui a assinatura da Store em máquinas que impõem Smart App Control. O aplicativo
 empacotado é executado com `--self-check-output` antes da compactação, pois builds `--windowed` não
 possuem console. O bootstrap substitui `stdout` e `stderr` ausentes por fluxos graváveis, inclusive
 para o progresso de download do Whisper.
