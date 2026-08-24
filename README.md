@@ -41,7 +41,7 @@ gratuita anteriormente publicada permanece disponível separadamente na Microsof
 | Debian/Ubuntu x86-64 | `WhisperTranscriber-Setup-Linux-x64.deb.part-*` | Partes numeradas do DEB offline; reconstrua o arquivo, confira o hash e instale com `dpkg`. |
 | Linux x86-64 portátil | `WhisperTranscriber-Linux-x64.tar.gz.part-*` | Partes numeradas do portátil CPU. |
 | Microsoft Store gratuita | [Produto `9PHWS6MM59BG`](https://apps.microsoft.com/detail/9PHWS6MM59BG) | Edição gratuita anterior, mantida em `1.2.4.0`. |
-| Microsoft Store Pro | Novo produto no Partner Center | Edição paga v0.3.0 por R$ 25,99; será vinculada aqui depois da certificação. |
+| Microsoft Store Pro | [Produto `9NJN8VV2N833`](https://apps.microsoft.com/detail/9NJN8VV2N833) | Edição paga v0.3.0 configurada por R$ 26,95; a aquisição será liberada somente após a certificação. |
 | Código-fonte | [ZIP](https://github.com/lucasitdias/whisper_desktop/archive/refs/tags/v0.3.0.zip) / [TAR.GZ](https://github.com/lucasitdias/whisper_desktop/archive/refs/tags/v0.3.0.tar.gz) | Fontes correspondentes à tag `v0.3.0`. |
 
 Checksums publicados:

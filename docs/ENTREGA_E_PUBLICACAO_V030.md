@@ -4,8 +4,8 @@
 
 A versão pública **v0.3.0** foi concluída e aceita localmente em 24/08/2026. O contador técnico do
 pacote MSIX de homologação é `1.3.4.0`. A aplicação gratuita já publicada na Microsoft Store
-permanece isolada na versão `1.2.4.0`; a edição Pro deve usar um novo produto reservado no Partner
-Center.
+permanece isolada na versão `1.2.4.0`; a edição Pro usa o produto separado `9NJN8VV2N833` no
+Partner Center.
 
 Autor e desenvolvedor: **Lucas Dias — Estudante de Ciência da Computação**.
 
@@ -43,9 +43,9 @@ plataforma.
 3. Criar a tag anotada `v0.3.0` somente após o CI aprovado.
 4. Aguardar builds limpos, instalação, autodiagnóstico, desinstalação, checksums e GitHub Release.
 5. Baixar novamente os anexos da release e conferir seus hashes.
-6. Reservar um produto **separado** para a edição Pro no Partner Center.
-7. Atualizar a identidade do manifesto para a nova reserva, manter o desenvolvedor `Lucas Dias`,
-   definir o preço brasileiro em **R$ 25,99** e gerar um novo MSIX.
+6. Usar o produto **separado** `9NJN8VV2N833` reservado para a edição Pro no Partner Center.
+7. Gerar o MSIX com a identidade Pro, manter o desenvolvedor `Lucas Dias` e o preço de
+   **R$ 26,95** configurado em 24/08/2026.
 8. Submeter o MSIX Pro, acompanhar a certificação e só marcar a Store como concluída depois que a
    página permitir aquisição e instalação reais.
 
@@ -53,8 +53,8 @@ plataforma.
 
 - **Edição gratuita:** produto `9PHWS6MM59BG`, versão instalada `1.2.4.0`, sem receber os recursos
   Pro da v0.3.0.
-- **Edição Pro:** novo produto, preço regional de R$ 25,99, versão pública v0.3.0 e identidade ainda
-  dependente da reserva no Partner Center.
+- **Edição Pro:** produto `9NJN8VV2N833`, preço regional de R$ 26,95, versão pública v0.3.0 e
+  identidade de pacote já incorporada ao build.
 - **GitHub Release:** código-fonte, instaladores fracionados, portáteis/pacotes fracionados quando
   necessário, avisos de terceiros e checksums.
 

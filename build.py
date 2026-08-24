@@ -32,10 +32,10 @@ WINDOWS_PORTABLE_NAME = "WhisperTranscriber-Windows-x64.zip"
 LINUX_PORTABLE_NAME = "WhisperTranscriber-Linux-x64.tar.gz"
 CUDA_INSTALLER_BUNDLE_NAME = "WhisperTranscriber-Setup-Windows-x64-Offline.zip"
 CPU_INSTALLER_BUNDLE_NAME = "WhisperTranscriber-Setup-Windows-x64-CPU-Offline.zip"
-STORE_PACKAGE_NAME = "WhisperTranscriber.WhisperTranscriberDesktop"
-STORE_PUBLISHER = "CN=B12A9AED-D3CC-463A-B3E5-ED71178CABF3"
+STORE_PACKAGE_NAME = "WhisperTranscriberDesktop.WhisperTranscriberDeskto"
+STORE_PUBLISHER = "CN=8D30778F-07F5-435C-A526-6B1646073081"
 STORE_PUBLISHER_DISPLAY_NAME = "Lucas Dias"
-STORE_ID = "9PHWS6MM59BG"
+STORE_ID = "9NJN8VV2N833"
 # A versão técnica do pacote precisa ser monotônica no Partner Center. Ela é
 # independente da versão pública do aplicativo e da tag do GitHub.
 # A versão pública v0.3.0 usa 1.3.4.0 somente como versão técnica do MSIX local.

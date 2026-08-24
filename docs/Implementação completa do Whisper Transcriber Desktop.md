@@ -69,7 +69,7 @@ Evidências detalhadas permanecem em [VALIDACAO_QUALIDADE_SEGURANCA.md](VALIDACA
 ## Distribuição e licença
 
 - A edição gratuita da Store permanece no produto `9PHWS6MM59BG`, versão `1.2.4.0`.
-- A edição Pro v0.3.0 deve usar outro produto e preço brasileiro de R$ 25,99.
+- A edição Pro v0.3.0 usa o produto `9NJN8VV2N833` e preço brasileiro de R$ 26,95.
 - O MSIX de homologação com identidade gratuita não pode ser submetido como Pro.
 - Instaladores GitHub sem Authenticode podem ser bloqueados; a proteção do Windows não deve ser
   desativada.

@@ -13,14 +13,13 @@ foi autorizado pelo responsável pelo produto em 23/08/2026.
 
 - **Whisper Transcriber Desktop (gratuito):** manter o produto atual e a versão instalada
   `1.2.4.0`, sem receber a v0.3.0.
-- **Whisper Transcriber Desktop Pro (pago):** criar um produto separado por **R$ 25,99**, com a
-  implementação v0.3.0, cujo aceite funcional local foi concluído em 24/08/2026.
+- **Whisper Transcriber Desktop Pro (pago):** produto separado `9NJN8VV2N833`, configurado por
+  **R$ 26,95**, com a implementação v0.3.0 aceita localmente em 24/08/2026.
 - Ambos devem exibir **Lucas Dias** como desenvolvedor público.
 
-O MSIX local `1.3.4.0` usa a identidade do produto gratuito exclusivamente para permitir o teste
-de atualização nesta máquina. **Não enviar esse arquivo ao produto gratuito.** Antes da
-submissão Pro, reservar o novo produto no Partner Center, copiar sua identidade oficial para o
-manifesto e gerar novamente o MSIX. Essa barreira preserva a edição gratuita em `1.2.4.0`.
+O candidato local anterior usou a identidade gratuita exclusivamente para testar a atualização
+nesta máquina e não pode ser enviado. O build atual usa a identidade oficial do produto Pro; essa
+separação preserva a edição gratuita em `1.2.4.0`.
 
 ## 1. Objetivo do canal
 
@@ -29,9 +28,11 @@ O projeto gera um MSIX destinado ao Partner Center; esse MSIX local não deve se
 instalador direto. A Microsoft valida e assina o pacote aceito antes de distribuí-lo.
 
 - Produto gratuito: **Whisper Transcriber Desktop**
+- Produto pago: **Whisper Transcriber Desktop Pro**
 - Desenvolvedor público: **Lucas Dias**
-- Store ID: `9PHWS6MM59BG`
-- Página: <https://apps.microsoft.com/detail/9PHWS6MM59BG>
+- Store ID gratuito: `9PHWS6MM59BG`
+- Store ID Pro: `9NJN8VV2N833`
+- Página Pro: <https://apps.microsoft.com/detail/9NJN8VV2N833>
 - Downloads da v0.3.0: <https://github.com/lucasitdias/whisper_desktop/releases/tag/v0.3.0>
 
 A existência do link não substitui a confirmação no Partner Center. Aquisição, disponibilidade
@@ -51,6 +52,21 @@ regional e instalação pela Store devem ser validadas depois que a submissão e
 Esses valores pertencem ao produto gratuito. Alterá-los quebra a associação do pacote com esse
 aplicativo no Partner Center. A edição Pro precisa receber os valores da sua nova reserva antes do
 build final; nenhum identificador deve ser inventado ou reutilizado.
+
+## 2.1 Identidade reservada da edição Pro
+
+| Campo | Valor |
+| --- | --- |
+| Nome na Store | `Whisper Transcriber Desktop Pro` |
+| Store ID | `9NJN8VV2N833` |
+| Package/Identity/Name | `WhisperTranscriberDesktop.WhisperTranscriberDeskto` |
+| Package/Identity/Publisher | `CN=8D30778F-07F5-435C-A526-6B1646073081` |
+| Package Family Name | `WhisperTranscriberDesktop.WhisperTranscriberDeskto_69ska0htfra0e` |
+| PublisherDisplayName esperado | `Lucas Dias` |
+
+O Partner Center ainda exibia o nome cadastral incorreto durante a preparação. O chamado Microsoft
+`2608240040002130` solicita a correção para `Lucas Dias`; o pacote não deve ser submetido antes de
+esse valor aparecer na identidade do produto.
 
 ## 3. Conteúdo e capacidades
 
@@ -125,11 +141,11 @@ A certificação definitiva pertence ao Partner Center, mesmo quando o WACK loca
 - [x] 131 testes e lint aprovados localmente;
 - [x] FFmpeg e runtime CUDA presentes no autodiagnóstico;
 - [x] identidade do manifesto igual à edição gratuita somente para o teste local;
-- [ ] novo produto Pro reservado e identidade copiada para o manifesto;
-- [ ] preço brasileiro de R$ 25,99 configurado no produto Pro;
+- [x] novo produto Pro reservado e identidade copiada para o manifesto;
+- [x] preço brasileiro de R$ 26,95 configurado no produto Pro;
 - [x] arquitetura restrita a Windows Desktop x64;
 - [ ] assets visuais e descrições preenchidos;
-- [ ] política de privacidade e informações de teste preenchidas;
+- [x] política de privacidade preenchida;
 - [ ] pacote anterior incorreto removido do rascunho;
 - [ ] MSIX final salvo e submetido;
 - [ ] Partner Center sem erro de validação;

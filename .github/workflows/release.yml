@@ -236,7 +236,8 @@ jobs:
             - **Windows 10/11 x64 somente CPU:** baixe o launcher `WhisperTranscriber-Setup-Windows-x64-CPU.exe` e todas as fatias CPU `.bin` na mesma pasta.
             - **Windows portátil CPU:** concatene `WhisperTranscriber-Windows-x64.zip.part-*` na ordem numérica para reconstruir o ZIP.
             - **Debian/Ubuntu x86-64 CPU:** concatene as partes do `.deb` ou do `.tar.gz` na ordem numérica antes de instalar/extrair.
-            - **Microsoft Store gratuita:** [abrir a edição existente](https://apps.microsoft.com/detail/9PHWS6MM59BG). A edição Pro v0.3.0 usa outro produto após certificação.
+            - **Microsoft Store gratuita:** [abrir a edição existente](https://apps.microsoft.com/detail/9PHWS6MM59BG).
+            - **Microsoft Store Pro:** produto [`9NJN8VV2N833`](https://apps.microsoft.com/detail/9NJN8VV2N833), disponível após certificação.
             - **Código-fonte:** arquivos `.zip` e `.tar.gz` gerados pelo GitHub.
 
             Confira o arquivo `SHA256SUMS-*` correspondente antes de instalar.
