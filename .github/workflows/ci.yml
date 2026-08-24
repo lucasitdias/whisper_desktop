@@ -28,7 +28,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libegl1
+          sudo apt-get install --yes libegl1 libpulse0
       - run: uv python install 3.11.16
       - run: uv venv --python 3.11.16
       - run: uv pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
