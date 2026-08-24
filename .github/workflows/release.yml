@@ -254,6 +254,7 @@ jobs:
       - name: Enviar anexos grandes sequencialmente
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
@@ -261,7 +262,7 @@ jobs:
             enviado=false
             for tentativa in 1 2 3; do
               echo "Enviando $(basename "$arquivo") (tentativa ${tentativa}/3)..."
-              if gh release upload "$GITHUB_REF_NAME" "$arquivo" --clobber; then
+              if gh release upload "$GITHUB_REF_NAME" "$arquivo" --clobber --repo "$GH_REPO"; then
                 enviado=true
                 break
               fi
