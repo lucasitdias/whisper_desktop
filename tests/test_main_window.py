@@ -46,6 +46,7 @@ def test_salvar_com_nome_sugerido(qtbot, monkeypatch, tmp_path: Path):
     destination = tmp_path / "saida"
     window = MainWindow()
     qtbot.addWidget(window)
+    monkeypatch.setattr(window, "_set_player_source", lambda _path: None)
     window.set_selected_file(str(audio))
     window.source_editor.setPlainText("# Resultado")
     monkeypatch.setattr(
