@@ -54,6 +54,7 @@ class FFmpegFinder:
     """Localiza o FFmpeg empacotado, do projeto, do PATH ou do cache local."""
 
     VERSION = "8.1.2-34-g9b6c8969e0"
+    MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024
 
     @classmethod
     def platform_key(cls) -> str:
@@ -189,8 +190,14 @@ class FFmpegFinder:
                 archive.open("wb") as output,
             ):
                 total = int(response.headers.get("Content-Length", "0"))
+                if total > cls.MAX_ARCHIVE_BYTES:
+                    raise FFmpegError("O arquivo informado para o FFmpeg excede o limite seguro.")
                 downloaded = 0
                 while chunk := response.read(1024 * 1024):
+                    if downloaded + len(chunk) > cls.MAX_ARCHIVE_BYTES:
+                        raise FFmpegError(
+                            "O download do FFmpeg excedeu o limite seguro."
+                        )
                     output.write(chunk)
                     digest.update(chunk)
                     downloaded += len(chunk)

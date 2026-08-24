@@ -40,9 +40,17 @@ def test_render_msix_manifest_usa_identidade_da_store(tmp_path: Path):
 
     assert build.STORE_PACKAGE_NAME in content
     assert build.STORE_PUBLISHER in content
+    assert "<PublisherDisplayName>Lucas Dias</PublisherDisplayName>" in content
     assert f'Version="{build.STORE_PACKAGE_VERSION}"' in content
     assert 'Executable="WhisperTranscriber.exe"' in content
     assert 'Name="runFullTrust"' in content
+
+
+def test_licenca_de_distribuicao_esta_disponivel():
+    license_file = build._license_file()
+
+    assert license_file.name == "LICENSE"
+    assert "Copyright (c) 2026 Lucas Dias" in license_file.read_text(encoding="utf-8")
 
 
 def test_generate_msix_assets_cria_dimensoes_obrigatorias(tmp_path: Path):
@@ -90,6 +98,10 @@ def test_verify_executable_le_json_windowed(monkeypatch, tmp_path: Path):
                     "status": "ok",
                     "dispositivo": "GPU NVIDIA CUDA: GPU de teste",
                     "runtime_pytorch": "NVIDIA CUDA 13.0",
+                    "modelos_offline": {
+                        "medium": "bundled",
+                        "turbo": "bundled",
+                    },
                 }
             ),
             encoding="utf-8",
@@ -116,6 +128,10 @@ def test_verify_executable_rejeita_runtime_incorreto(monkeypatch, tmp_path: Path
                     "status": "ok",
                     "dispositivo": "CPU (aceleração por GPU não disponível)",
                     "runtime_pytorch": "CPU",
+                    "modelos_offline": {
+                        "medium": "bundled",
+                        "turbo": "bundled",
+                    },
                 }
             ),
             encoding="utf-8",
@@ -136,7 +152,16 @@ def test_verify_executable_rejeita_build_cpu_quando_cuda_e_obrigatoria(
     def fake_run(command, **_kwargs):
         output = Path(command[command.index("--self-check-output") + 1])
         output.write_text(
-            json.dumps({"status": "ok", "dispositivo": "CPU (CUDA não disponível)"}),
+            json.dumps(
+                {
+                    "status": "ok",
+                    "dispositivo": "CPU (CUDA não disponível)",
+                    "modelos_offline": {
+                        "medium": "bundled",
+                        "turbo": "bundled",
+                    },
+                }
+            ),
             encoding="utf-8",
         )
 
@@ -169,3 +194,34 @@ def test_verify_executable_pode_continuar_se_smart_app_control_bloquear(
 def test_nomes_dos_instaladores_separam_cuda_e_cpu():
     assert build.INSTALLER_NAME == "WhisperTranscriber-Setup-Windows-x64.exe"
     assert build.CPU_INSTALLER_NAME == "WhisperTranscriber-Setup-Windows-x64-CPU.exe"
+    assert build.WINDOWS_PORTABLE_NAME.endswith(".zip")
+    assert build.LINUX_PORTABLE_NAME.endswith(".tar.gz")
+    assert build.CUDA_INSTALLER_BUNDLE_NAME.endswith("-Offline.zip")
+    assert build.CPU_INSTALLER_BUNDLE_NAME.endswith("-Offline.zip")
+
+
+def test_fatias_cuda_e_cpu_nao_se_misturam(tmp_path: Path):
+    cuda = tmp_path / build.INSTALLER_NAME
+    cpu = tmp_path / build.CPU_INSTALLER_NAME
+    for name in (
+        f"{cuda.stem}-1.bin",
+        f"{cuda.stem}-2.bin",
+        f"{cpu.stem}-1.bin",
+        f"{cpu.stem}-2.bin",
+        f"{cuda.stem}-anexo.bin",
+    ):
+        (tmp_path / name).touch()
+
+    assert [path.name for path in build.installer_slices(cuda)] == [
+        f"{cuda.stem}-1.bin",
+        f"{cuda.stem}-2.bin",
+    ]
+    assert [path.name for path in build.installer_slices(cpu)] == [
+        f"{cpu.stem}-1.bin",
+        f"{cpu.stem}-2.bin",
+    ]
+
+
+def test_metadados_de_distribuicao_identificam_o_desenvolvedor():
+    assert build.STORE_PUBLISHER_DISPLAY_NAME == "Lucas Dias"
+    assert build.STORE_PACKAGE_VERSION == "1.3.4.0"

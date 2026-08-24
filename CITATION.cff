@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "Se você utilizar este software ou seu código, cite o projeto e seu autor."
+title: "Whisper Transcriber Desktop"
+type: software
+authors:
+  - family-names: "Dias"
+    given-names: "Lucas"
+version: 0.3.0
+date-released: 2026-08-24
+repository-code: "https://github.com/lucasitdias/whisper_desktop"
+url: "https://github.com/lucasitdias/whisper_desktop"
+license: MIT

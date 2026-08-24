@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import zipfile
 from pathlib import Path
@@ -16,46 +18,104 @@ from xml.etree import ElementTree
 
 from app import __version__
 from app.core.ffmpeg_finder import FFmpegFinder
+from app.core.model_catalog import (
+    BUNDLED_MODEL_IDS,
+    MODEL_BY_ID,
+    ModelManager,
+    download_checkpoint,
+)
 
 APP_EXECUTABLE = "WhisperTranscriber"
 INSTALLER_NAME = "WhisperTranscriber-Setup-Windows-x64.exe"
 CPU_INSTALLER_NAME = "WhisperTranscriber-Setup-Windows-x64-CPU.exe"
+WINDOWS_PORTABLE_NAME = "WhisperTranscriber-Windows-x64.zip"
+LINUX_PORTABLE_NAME = "WhisperTranscriber-Linux-x64.tar.gz"
+CUDA_INSTALLER_BUNDLE_NAME = "WhisperTranscriber-Setup-Windows-x64-Offline.zip"
+CPU_INSTALLER_BUNDLE_NAME = "WhisperTranscriber-Setup-Windows-x64-CPU-Offline.zip"
 STORE_PACKAGE_NAME = "WhisperTranscriber.WhisperTranscriberDesktop"
 STORE_PUBLISHER = "CN=B12A9AED-D3CC-463A-B3E5-ED71178CABF3"
-STORE_PUBLISHER_DISPLAY_NAME = "WhisperTranscriber"
+STORE_PUBLISHER_DISPLAY_NAME = "Lucas Dias"
 STORE_ID = "9PHWS6MM59BG"
 # A versão técnica do pacote precisa ser monotônica no Partner Center. Ela é
-# independente da versão pública 0.2.1 do aplicativo e da tag do GitHub.
-STORE_PACKAGE_VERSION = "1.2.4.0"
+# independente da versão pública do aplicativo e da tag do GitHub.
+# A versão pública v0.3.0 usa 1.3.4.0 somente como versão técnica do MSIX local.
+# O produto Pro terá identidade própria antes de qualquer envio ao Partner Center.
+STORE_PACKAGE_VERSION = "1.3.4.0"
 MSIX_NAME = f"WhisperTranscriber-Desktop-{__version__}-Windows-x64.msix"
 
 
-def build(*, onefile: bool = True, prepare_only: bool = False) -> Path:
-    """Compila o aplicativo, em arquivo único ou diretório para o instalador."""
+def prepare_bundled_models() -> tuple[Path, ...]:
+    """Garante e valida os checkpoints que devem seguir no pacote offline."""
+
+    checkpoints: list[Path] = []
+    for model_id in BUNDLED_MODEL_IDS:
+        spec = MODEL_BY_ID[model_id]
+        last_progress = -1
+
+        def report_progress(value: int, *, name: str = model_id) -> None:
+            nonlocal last_progress
+            if value != last_progress:
+                print(f"Modelo {name}: {value}%")
+                last_progress = value
+
+        checkpoint = download_checkpoint(
+            spec,
+            destination_root=ModelManager.cache_root(),
+            progress=report_progress,
+            status=print,
+        )
+        ModelManager.verify(checkpoint, spec)
+        checkpoints.append(checkpoint)
+        print(f"Modelo offline verificado: {model_id} ({spec.size_label})")
+    return tuple(checkpoints)
+
+
+def build(*, prepare_only: bool = False) -> Path:
+    """Compila o aplicativo como diretório, sem extração gigante a cada abertura."""
     root = Path(__file__).resolve().parent
     platform_key = FFmpegFinder.platform_key()
     ffmpeg = FFmpegFinder.ensure_static(progress=lambda value: print(f"FFmpeg: {value}%"))
     print(f"FFmpeg verificado: {ffmpeg}")
     if prepare_only:
         return ffmpeg
+    bundled_models = prepare_bundled_models()
 
     separator = os.pathsep
     icon = root / "assets" / ("icon.ico" if platform_key == "windows" else "icon.png")
     if not icon.is_file():
         raise FileNotFoundError(f"Ícone obrigatório não encontrado: {icon}")
+    manifest_args: list[str] = []
+    if platform_key == "windows":
+        executable_manifest = (
+            root / "packaging" / "windows" / "WhisperTranscriber.exe.manifest"
+        )
+        if not executable_manifest.is_file():
+            raise FileNotFoundError(
+                f"Manifesto do executável não encontrado: {executable_manifest}"
+            )
+        manifest_args = ["--manifest", str(executable_manifest)]
 
+    model_data_args = [
+        argument
+        for checkpoint in bundled_models
+        for argument in (
+            "--add-data",
+            f"{checkpoint}{separator}assets/models",
+        )
+    ]
     command = [
         sys.executable,
         "-m",
         "PyInstaller",
         "--noconfirm",
         "--clean",
-        "--onefile" if onefile else "--onedir",
+        "--onedir",
         "--windowed",
         "--name",
         APP_EXECUTABLE,
         "--icon",
         str(icon),
+        *manifest_args,
         "--add-binary",
         f"{ffmpeg}{separator}assets/ffmpeg/{platform_key}",
         "--add-data",
@@ -66,17 +126,17 @@ def build(*, onefile: bool = True, prepare_only: bool = False) -> Path:
         "torch",
         "--hidden-import",
         "tiktoken_ext.openai_public",
+        *model_data_args,
         str(root / "main.py"),
     ]
-    mode = "arquivo único" if onefile else "diretório instalável"
-    print(f"Iniciando compilação do {mode}...")
+    print("Iniciando compilação do diretório instalável...")
     subprocess.run(command, cwd=root, check=True)
     suffix = ".exe" if platform_key == "windows" else ""
-    executable = root / "dist" / f"{APP_EXECUTABLE}{suffix}"
-    if not onefile:
-        executable = root / "dist" / APP_EXECUTABLE / f"{APP_EXECUTABLE}{suffix}"
+    executable = root / "dist" / APP_EXECUTABLE / f"{APP_EXECUTABLE}{suffix}"
     if not executable.is_file():
         raise RuntimeError("O PyInstaller terminou sem gerar o executável esperado.")
+    shutil.copy2(_license_file(), executable.parent / "LICENSE")
+    shutil.copy2(_third_party_notice(), executable.parent / "THIRD_PARTY_NOTICES.md")
     print(f"Compilação concluída: {executable}")
     return executable
 
@@ -121,10 +181,42 @@ def verify_executable(
             f"O build deveria conter o runtime {require_runtime}, mas contém: "
             f"{runtime or 'desconhecido'}"
         )
+    models = payload.get("modelos_offline", {})
+    if not isinstance(models, dict) or any(
+        models.get(model_id) != "bundled" for model_id in BUNDLED_MODEL_IDS
+    ):
+        raise RuntimeError(f"O build não contém todos os modelos offline: {models}")
     print(f"Executável verificado: {device}")
     if runtime:
         print(f"Runtime incorporado: {runtime}")
     return payload
+
+
+def build_portable_archive(executable: Path) -> Path:
+    """Arquiva o diretório instalável sem reextrair modelos a cada abertura."""
+
+    if not executable.is_file() or executable.parent.name != APP_EXECUTABLE:
+        raise ValueError("O portátil exige o build PyInstaller no modo --onedir.")
+    root = Path(__file__).resolve().parent
+    if sys.platform.startswith("win"):
+        destination = root / "dist" / WINDOWS_PORTABLE_NAME
+        destination.unlink(missing_ok=True)
+        with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_STORED) as zipped:
+            for path in executable.parent.rglob("*"):
+                if path.is_file():
+                    zipped.write(path, path.relative_to(executable.parent.parent))
+        archive = str(destination)
+    else:
+        destination = root / "dist" / LINUX_PORTABLE_NAME
+        destination.unlink(missing_ok=True)
+        with tarfile.open(destination, "w:gz", compresslevel=1) as packed:
+            packed.add(executable.parent, arcname=executable.parent.name)
+        archive = str(destination)
+    result = Path(archive).resolve()
+    if not result.is_file():
+        raise RuntimeError("A geração do pacote portátil não produziu o arquivo esperado.")
+    print(f"Pacote portátil concluído: {result}")
+    return result
 
 
 def find_iscc() -> Path:
@@ -252,6 +344,13 @@ def _third_party_notice() -> Path:
     raise FileNotFoundError("THIRD_PARTY_NOTICES.md não foi encontrado.")
 
 
+def _license_file() -> Path:
+    license_file = Path(__file__).resolve().parent / "LICENSE"
+    if license_file.is_file():
+        return license_file
+    raise FileNotFoundError("LICENSE não foi encontrado.")
+
+
 def build_msix(executable: Path) -> Path:
     """Empacota o diretório PyInstaller como MSIX não assinado para a Store."""
     if not sys.platform.startswith("win"):
@@ -272,6 +371,7 @@ def build_msix(executable: Path) -> Path:
         render_msix_manifest(stage / "AppxManifest.xml")
         generate_msix_assets(stage / "Assets")
         shutil.copy2(_third_party_notice(), stage / "THIRD_PARTY_NOTICES.md")
+        shutil.copy2(_license_file(), stage / "LICENSE")
         command = [
             str(find_makeappx()),
             "pack",
@@ -352,6 +452,9 @@ def build_installer(
     output_dir = root / "dist" / "installer"
     output_dir.mkdir(parents=True, exist_ok=True)
     installer = output_dir / output_name
+    installer.unlink(missing_ok=True)
+    for stale_slice in installer_slices(installer):
+        stale_slice.unlink()
     command = [
         str(find_iscc()),
         "/Qp",
@@ -366,8 +469,43 @@ def build_installer(
     subprocess.run(command, cwd=root, check=True)
     if not installer.is_file():
         raise RuntimeError("O Inno Setup terminou sem gerar o instalador esperado.")
+    slices = installer_slices(installer)
+    if not slices:
+        raise RuntimeError("O Inno Setup não gerou as fatias offline obrigatórias.")
     print(f"Instalador concluído: {installer}")
+    print(f"Fatias offline: {len(slices)}")
     return installer
+
+
+def installer_slices(installer: Path) -> list[Path]:
+    """Lista somente as fatias numeradas pertencentes ao launcher informado."""
+
+    pattern = re.compile(rf"{re.escape(installer.stem)}-\d+\.bin", re.IGNORECASE)
+    return sorted(
+        path
+        for path in installer.parent.iterdir()
+        if path.is_file() and pattern.fullmatch(path.name)
+    )
+
+
+def build_installer_bundle(installer: Path) -> Path:
+    """Agrupa launcher e fatias Inno em um ZIP indivisível para distribuição."""
+
+    slices = installer_slices(installer)
+    if not installer.is_file() or not slices:
+        raise FileNotFoundError("Launcher ou fatias do instalador offline não encontrados.")
+    bundle_name = (
+        CPU_INSTALLER_BUNDLE_NAME
+        if installer.name == CPU_INSTALLER_NAME
+        else CUDA_INSTALLER_BUNDLE_NAME
+    )
+    destination = installer.parent / bundle_name
+    destination.unlink(missing_ok=True)
+    with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_STORED) as archive:
+        for payload in (installer, *slices):
+            archive.write(payload, payload.name)
+    print(f"Bundle completo do instalador: {destination}")
+    return destination
 
 
 def main() -> int:
@@ -377,6 +515,11 @@ def main() -> int:
         "--prepare-ffmpeg",
         action="store_true",
         help="baixa e verifica o FFmpeg sem executar o PyInstaller",
+    )
+    mode.add_argument(
+        "--prepare-models",
+        action="store_true",
+        help="baixa e verifica os checkpoints incorporados sem compilar",
     )
     mode.add_argument(
         "--installer",
@@ -407,6 +550,9 @@ def main() -> int:
     if args.prepare_ffmpeg:
         build(prepare_only=True)
         return 0
+    if args.prepare_models:
+        prepare_bundled_models()
+        return 0
     if args.installer_only:
         executable = (
             Path(__file__).resolve().parent
@@ -414,21 +560,28 @@ def main() -> int:
             / APP_EXECUTABLE
             / f"{APP_EXECUTABLE}.exe"
         )
-        build_installer(executable)
+        installer = build_installer(executable)
+        build_installer_bundle(installer)
         return 0
     if args.installer:
-        executable = build(onefile=False)
+        executable = build()
         verify_executable(
             executable,
             require_runtime="NVIDIA CUDA",
             allow_policy_block=True,
         )
-        build_installer(executable)
+        installer = build_installer(executable)
+        build_installer_bundle(installer)
         return 0
     if args.installer_cpu:
-        executable = build(onefile=False)
-        verify_executable(executable, require_runtime="CPU")
-        build_installer(executable, output_name=CPU_INSTALLER_NAME)
+        executable = build()
+        verify_executable(
+            executable,
+            require_runtime="CPU",
+            allow_policy_block=True,
+        )
+        installer = build_installer(executable, output_name=CPU_INSTALLER_NAME)
+        build_installer_bundle(installer)
         return 0
     if args.msix_only:
         executable = (
@@ -441,7 +594,7 @@ def main() -> int:
         verify_msix(package)
         return 0
     if args.msix:
-        executable = build(onefile=False)
+        executable = build()
         verify_executable(
             executable,
             require_cuda=True,
@@ -451,8 +604,9 @@ def main() -> int:
         package = build_msix(executable)
         verify_msix(package)
         return 0
-    executable = build(onefile=True)
+    executable = build()
     verify_executable(executable)
+    build_portable_archive(executable)
     return 0
 
 

@@ -1,20 +1,43 @@
 # Publicação na Microsoft Store
 
+> Autor e desenvolvedor: **Lucas Dias — Estudante de Ciência da Computação**.
+
+## Atualização v0.3.0
+
+O manifesto passa a declarar `<DeviceCapability Name="microphone" />` porque a aplicação só acessa
+o microfone depois de o usuário clicar em **Gravar**. A certificação deve validar permissão negada,
+ausência de dispositivo, gravação/pausa/parada e política de privacidade. O envio ao Partner Center
+foi autorizado pelo responsável pelo produto em 23/08/2026.
+
+### Estratégia de produtos aprovada
+
+- **Whisper Transcriber Desktop (gratuito):** manter o produto atual e a versão instalada
+  `1.2.4.0`, sem receber a v0.3.0.
+- **Whisper Transcriber Desktop Pro (pago):** criar um produto separado por **R$ 25,99**, com a
+  implementação v0.3.0, cujo aceite funcional local foi concluído em 24/08/2026.
+- Ambos devem exibir **Lucas Dias** como desenvolvedor público.
+
+O MSIX local `1.3.4.0` usa a identidade do produto gratuito exclusivamente para permitir o teste
+de atualização nesta máquina. **Não enviar esse arquivo ao produto gratuito.** Antes da
+submissão Pro, reservar o novo produto no Partner Center, copiar sua identidade oficial para o
+manifesto e gerar novamente o MSIX. Essa barreira preserva a edição gratuita em `1.2.4.0`.
+
 ## 1. Objetivo do canal
 
 A Microsoft Store é o canal recomendado para Windows quando a máquina exige aplicativo assinado.
 O projeto gera um MSIX destinado ao Partner Center; esse MSIX local não deve ser oferecido como
 instalador direto. A Microsoft valida e assina o pacote aceito antes de distribuí-lo.
 
-- Produto: **Whisper Transcriber Desktop**
+- Produto gratuito: **Whisper Transcriber Desktop**
+- Desenvolvedor público: **Lucas Dias**
 - Store ID: `9PHWS6MM59BG`
 - Página: <https://apps.microsoft.com/detail/9PHWS6MM59BG>
-- Downloads alternativos: <https://github.com/lucasitdias/whisper_desktop/releases/tag/v0.2.1>
+- Downloads da v0.3.0: <https://github.com/lucasitdias/whisper_desktop/releases/tag/v0.3.0>
 
 A existência do link não substitui a confirmação no Partner Center. Aquisição, disponibilidade
 regional e instalação pela Store devem ser validadas depois que a submissão estiver publicada.
 
-## 2. Identidade reservada
+## 2. Identidade reservada da edição gratuita
 
 | Campo | Valor |
 | --- | --- |
@@ -25,8 +48,9 @@ regional e instalação pela Store devem ser validadas depois que a submissão e
 | Arquitetura | `x64` |
 | Família de dispositivo | `Windows.Desktop` |
 
-Esses valores pertencem ao produto reservado. Alterá-los quebra a associação do pacote com o
-aplicativo no Partner Center.
+Esses valores pertencem ao produto gratuito. Alterá-los quebra a associação do pacote com esse
+aplicativo no Partner Center. A edição Pro precisa receber os valores da sua nova reserva antes do
+build final; nenhum identificador deve ser inventado ou reutilizado.
 
 ## 3. Conteúdo e capacidades
 
@@ -39,8 +63,9 @@ O MSIX contém:
 - FFmpeg estático validado;
 - ícones exigidos pelo manifesto.
 
-O modelo `turbo` não é incorporado. Ele é baixado no primeiro uso e mantido no cache local da
-aplicação.
+Os modelos `medium` e `turbo` são incorporados e funcionam sem rede. `tiny`, `base`, `small` e
+`large-v3` são baixados somente após ação explícita, validados por SHA-256 e então usados localmente.
+Áudios e transcrições nunca são enviados durante esse download.
 
 O manifesto declara `runFullTrust` porque é um aplicativo desktop Win32 empacotado. Justificativa:
 
@@ -70,34 +95,39 @@ uv run python build.py --msix-only
 Saída:
 
 ```text
-dist/store/WhisperTranscriber-Desktop-0.2.1-Windows-x64.msix
+dist/store/WhisperTranscriber-Desktop-0.3.0-Windows-x64.msix
 ```
 
 ## 5. Versionamento
 
-- versão pública do aplicativo: `0.2.1`;
-- versão técnica do MSIX atual: `1.2.4.0`.
+- versão pública final do aplicativo: `0.3.0`;
+- versão técnica do MSIX local de aceite: `1.3.4.0`;
+- versão técnica instalada anteriormente: `1.2.4.0`.
 
 A versão técnica é um contador monotônico independente da tag pública. Ela foi avançada para
 substituir pacotes de rascunho anteriores e não representa uma release `0.2.4`.
 
-Evidência do candidato enviado:
+Evidência do candidato local anterior, ainda com `large-v3` incorporado (não enviado):
 
-- tamanho: 2.149.611.092 bytes;
-- SHA-256: `199DF03410371E8C22D74B75EA49AC9278D59B2504AC63FCBBF3ADCD64ADB3F9`;
+- tamanho: 7.896.794.378 bytes;
+- SHA-256: `8ecd815dcdea63f9e80b0b16caf1bf815a52c80cbf951437352b5a8200b7519c`;
 - identidade, versão, arquitetura, manifesto e executável verificados por `build.py`;
-- 15 testes estáticos aplicáveis do Windows App Certification Kit com resultado `Pass`.
+- instalação local registrada pelo Windows com versão `1.3.4.0` e status `Ok`;
+- resultado do Windows App Certification Kit registrado no relatório final de validação junto dos
+  artefatos.
 
 A certificação definitiva pertence ao Partner Center, mesmo quando o WACK local é aprovado.
 
 ## 6. Checklist antes do envio
 
-- [ ] `main` limpa e sincronizada;
+- [ ] `main` limpa e sincronizada após a publicação no GitHub;
 - [ ] versão pública e técnica revisadas;
-- [ ] 55 testes e lint aprovados;
-- [ ] FFmpeg e runtime CUDA presentes no autodiagnóstico;
-- [ ] identidade do manifesto igual à reservada;
-- [ ] arquitetura restrita a Windows Desktop x64;
+- [x] 131 testes e lint aprovados localmente;
+- [x] FFmpeg e runtime CUDA presentes no autodiagnóstico;
+- [x] identidade do manifesto igual à edição gratuita somente para o teste local;
+- [ ] novo produto Pro reservado e identidade copiada para o manifesto;
+- [ ] preço brasileiro de R$ 25,99 configurado no produto Pro;
+- [x] arquitetura restrita a Windows Desktop x64;
 - [ ] assets visuais e descrições preenchidos;
 - [ ] política de privacidade e informações de teste preenchidas;
 - [ ] pacote anterior incorreto removido do rascunho;
@@ -105,12 +135,15 @@ A certificação definitiva pertence ao Partner Center, mesmo quando o WACK loca
 - [ ] Partner Center sem erro de validação;
 - [ ] página pública permitindo aquisição;
 - [ ] instalação pela Store testada em Windows compatível;
-- [ ] primeira transcrição e download do modelo testados.
+- [x] inferência offline de `medium` e `turbo` testada em GPU e CPU;
+- [x] novo fluxo de download explícito/cache de `large-v3` revalidado no candidato reduzido;
+- [x] download explícito, cancelamento e cache de `tiny`, `base` e `small` testados.
 
 ## 7. Relação com os downloads GitHub
 
-A release v0.2.1 oferece instaladores offline NVIDIA CUDA/CPU, portáteis e Linux. Eles foram
-instalados e autoverificados em CI, mas os executáveis Windows diretos não têm Authenticode.
+A release v0.3.0 oferece instaladores offline NVIDIA CUDA/CPU, portáteis e Linux. O pipeline instala
+e autoverifica os pacotes antes de publicar, mas os executáveis Windows diretos não têm
+Authenticode.
 
 Em computadores com Smart App Control:
 

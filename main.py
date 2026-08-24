@@ -29,11 +29,18 @@ def ensure_standard_streams() -> None:
 
 
 def self_check(output_path: str | Path | None = None) -> int:
+    from PySide6.QtMultimedia import QAudioSource
+
     from app.core.ffmpeg_finder import FFmpegFinder
+    from app.core.model_catalog import BUNDLED_MODEL_IDS, MODEL_BY_ID, ModelManager
     from app.core.transcriber import TranscriberWorker
 
     try:
         ffmpeg = FFmpegFinder.ensure_available()
+        model_status = {
+            model_id: ModelManager.availability(MODEL_BY_ID[model_id]).value
+            for model_id in BUNDLED_MODEL_IDS
+        }
         payload = {
             "aplicativo": "Whisper Transcriber Desktop",
             "versao": __version__,
@@ -41,6 +48,8 @@ def self_check(output_path: str | Path | None = None) -> int:
             "ffmpeg": str(ffmpeg),
             "dispositivo": TranscriberWorker.device_description(),
             "runtime_pytorch": TranscriberWorker.runtime_description(),
+            "gravacao_audio": "disponível" if QAudioSource else "indisponível",
+            "modelos_offline": model_status,
             "status": "ok",
         }
         serialized = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"

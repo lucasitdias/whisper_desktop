@@ -1,9 +1,22 @@
 # Memorando de Preparação do Ambiente
 
+> Autor e desenvolvedor: **Lucas Dias — Estudante de Ciência da Computação**.
+
+> **Versão Pro v0.3.0:** a implementação foi aceita localmente. Para instalar o bundle de
+> homologação, extraia integralmente
+> `WhisperTranscriber-Setup-Windows-x64-Offline.zip` (CUDA) ou
+> `WhisperTranscriber-Setup-Windows-x64-CPU-Offline.zip` (CPU) e mantenha o `.exe` ao lado de todas
+> as fatias `.bin`. Em Linux, use `WhisperTranscriber-Setup-Linux-x64.deb` ou extraia
+> `WhisperTranscriber-Linux-x64.tar.gz`. Esses quatro pacotes já incluem FFmpeg, `medium` e `turbo`;
+> não exigem internet para esses modelos. O `large-v3` é baixado somente após ação explícita e
+> depois funciona offline. A versão pública é `0.3.0` e o MSIX de homologação
+> usa somente o contador técnico `1.3.4.0`.
+
 ## 1. Identificação
 
 - **Projeto:** Whisper Transcriber Desktop
-- **Versão:** v0.2.1
+- **Versão:** v0.3.0
+- **Autor:** Lucas Dias — Estudante de Ciência da Computação
 - **Alvos:** Windows 10/11 x64 e Debian/Ubuntu x86-64
 - **Python de desenvolvimento:** 3.11
 - **Gerenciador:** `uv`
@@ -12,8 +25,8 @@
 
 ### 2.1 Windows com GPU NVIDIA
 
-1. Baixe `WhisperTranscriber-Setup-Windows-x64.exe` na
-   [release v0.2.1](https://github.com/lucasitdias/whisper_desktop/releases/tag/v0.2.1).
+1. Na [release v0.3.0](https://github.com/lucasitdias/whisper_desktop/releases/tag/v0.3.0), baixe
+   `WhisperTranscriber-Setup-Windows-x64.exe` e todas as partes CUDA `.bin`.
 2. Confira `SHA256SUMS-Windows-NVIDIA-CUDA.txt`.
 3. Execute o instalador por usuário.
 4. Abra pelo menu **Whisper Transcriber Desktop**.
@@ -24,8 +37,8 @@ O CUDA Toolkit do sistema não é necessário; o driver NVIDIA compatível conti
 
 ### 2.2 Windows CPU
 
-Use `WhisperTranscriber-Setup-Windows-x64-CPU.exe` para instalação tradicional ou
-`WhisperTranscriber-Windows-x64.exe` para execução portátil. Confira
+Use `WhisperTranscriber-Setup-Windows-x64-CPU.exe` com todas as partes CPU `.bin` para instalação
+tradicional ou reconstrua `WhisperTranscriber-Windows-x64.zip` a partir das partes numeradas. Confira
 `SHA256SUMS-Windows-CPU.txt`.
 
 Os executáveis diretos ainda não possuem Authenticode. O Smart App Control pode bloquear um hash
@@ -48,12 +61,13 @@ Remoção:
 sudo apt remove whisper-transcriber-desktop
 ```
 
-Executável portátil:
+Portátil reconstruído:
 
 ```bash
-chmod +x WhisperTranscriber-Linux-x64
-./WhisperTranscriber-Linux-x64 --self-check
-./WhisperTranscriber-Linux-x64
+tar -xzf WhisperTranscriber-Linux-x64.tar.gz
+chmod +x WhisperTranscriber/WhisperTranscriber
+./WhisperTranscriber/WhisperTranscriber --self-check
+./WhisperTranscriber/WhisperTranscriber
 ```
 
 Confira `SHA256SUMS-Linux.txt` antes de executar.
@@ -132,7 +146,8 @@ Preparação manual:
 uv run build.py --prepare-ffmpeg
 ```
 
-O modelo `turbo` é baixado somente na primeira transcrição:
+Os modelos `medium` e `turbo` são incorporados e não usam rede. `tiny`, `base`, `small` e
+`large-v3` são baixados somente após ação explícita:
 
 - Windows: `%LOCALAPPDATA%\WhisperTranscriber\models`;
 - Linux: `${XDG_CACHE_HOME:-~/.cache}/WhisperTranscriber/models`.
@@ -148,7 +163,7 @@ uv run main.py --self-check
 git diff --check
 ```
 
-Resultado de referência da v0.2.1: 55 testes aprovados.
+Resultado de referência da v0.3.0 final: 131 testes aprovados.
 
 ## 9. Builds
 
@@ -174,7 +189,7 @@ Saídas principais:
 
 - `dist/installer/WhisperTranscriber-Setup-Windows-x64.exe`;
 - `dist/installer/WhisperTranscriber-Setup-Windows-x64-CPU.exe`;
-- `dist/WhisperTranscriber(.exe)`;
+- `dist/WhisperTranscriber-Windows-x64.zip` ou `dist/WhisperTranscriber-Linux-x64.tar.gz`;
 - `dist/store/WhisperTranscriber-Desktop-<versao>-Windows-x64.msix`.
 
 Cada build incorpora exatamente o runtime PyTorch existente no ambiente. Uma wheel CUDA não usa
@@ -201,11 +216,11 @@ sha256sum -c SHA256SUMS-Linux.txt
 | --- | --- |
 | FFmpeg indisponível | Execute `uv run build.py --prepare-ffmpeg`; confira rede, proxy e permissão do cache. |
 | CUDA não detectada | Atualize o driver e confirme `torch.version.cuda`/`torch.cuda.is_available()`. |
-| GPU AMD/Intel não detectada | Confirme que o ambiente contém a wheel ROCm/XPU; os anexos v0.2.1 não incluem esses runtimes. |
+| GPU AMD/Intel não detectada | Confirme que o ambiente contém a wheel ROCm/XPU; os anexos v0.3.0 não incluem esses runtimes. |
 | Pouca VRAM | Aguarde a mensagem de fallback automático para CPU. |
 | Modelo não baixa | Verifique HTTPS, proxy e espaço no cache da aplicação. |
 | Download repete | Confira permissão de escrita no cache e se o arquivo foi concluído. |
-| `NoneType` sem `write` | Use v0.2.1; o bootstrap fornece streams graváveis em builds `--windowed`. |
+| `NoneType` sem `write` | Use a v0.3.0 final; o bootstrap fornece streams graváveis em builds `--windowed`. |
 | Smart App Control / código 4551 | O binário não possui assinatura/reputação aceita. Não desative a proteção; use a Store quando disponível. |
 | Inno Setup ausente | Instale Inno Setup 6/7 oficial e repita o build. |
 | MakeAppx ausente | Instale Windows SDK ou defina `MAKEAPPX_PATH`. |

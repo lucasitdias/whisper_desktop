@@ -1,5 +1,7 @@
 # Avisos de terceiros
 
+> Projeto mantido por **Lucas Dias — Estudante de Ciência da Computação**.
+
 O Whisper Transcriber Desktop utiliza e, nos artefatos binários, distribui componentes de
 terceiros. Este arquivo deve acompanhar os instaladores.
 
@@ -8,8 +10,12 @@ terceiros. Este arquivo deve acompanhar os instaladores.
 - Projeto: <https://github.com/openai/whisper>
 - Versão Python: `20250625`
 - Licença do código: MIT
-- Modelo utilizado: `turbo`
-- Os pesos são baixados no primeiro uso e não são incorporados ao repositório ou instaladores.
+- Modelos multilíngues incorporados: `medium` e `turbo`.
+- Modelos opcionais: `tiny`, `base` e `small`, obtidos somente após ação explícita do usuário.
+- Os pesos oficiais não são incorporados ao repositório Git; os dois modelos offline são
+  verificados por SHA-256 e incorporados somente durante a geração dos instaladores.
+- `tiny`, `base`, `small` e `large-v3` são obtidos apenas após ação explícita, com URL e SHA-256
+  oficiais fixados; depois permanecem no cache local para uso offline.
 
 ## PyTorch
 
@@ -17,7 +23,7 @@ terceiros. Este arquivo deve acompanhar os instaladores.
 - Versão: `2.12.1`
 - Licença: BSD 3-Clause
 - Perfis distribuídos: CUDA 13 no instalador NVIDIA e CPU nos demais pacotes.
-- ROCm/XPU não estão incorporados aos anexos v0.2.1.
+- ROCm/XPU não estão incorporados aos anexos finais v0.3.0.
 
 ## Qt for Python / PySide6
 
@@ -59,6 +65,6 @@ terceiros. Este arquivo deve acompanhar os instaladores.
 
 - conservar este arquivo nos pacotes instaláveis;
 - não remover avisos/licenças presentes nos componentes;
-- manter FFmpeg e pesos do modelo separados conforme descrito;
+- manter FFmpeg como executável separado e preservar os avisos dos pesos oficiais;
 - consultar os textos integrais nos projetos oficiais antes de redistribuir uma variante alterada;
 - revisar o licenciamento novamente ao trocar versão, codec, build FFmpeg ou perfil PyTorch.

@@ -72,6 +72,25 @@ def test_download_rejeita_checksum_incorreto(monkeypatch, tmp_path: Path):
     assert hashlib.sha256(payload).hexdigest() != asset.sha256
 
 
+def test_download_rejeita_arquivo_acima_do_limite(monkeypatch, tmp_path: Path):
+    asset = FFmpegAsset("https://example.invalid/a.zip", "0" * 64, "zip", "ffmpeg.exe")
+    response = FakeResponse(b"")
+    response.headers["Content-Length"] = str(FFmpegFinder.MAX_ARCHIVE_BYTES + 1)
+    monkeypatch.setattr(FFmpegFinder, "asset", classmethod(lambda cls: asset))
+    monkeypatch.setattr(
+        FFmpegFinder,
+        "cache_path",
+        classmethod(lambda cls: tmp_path / "ffmpeg.exe"),
+    )
+    monkeypatch.setattr(
+        "app.core.ffmpeg_finder.urllib.request.urlopen",
+        lambda *_args, **_kwargs: response,
+    )
+
+    with pytest.raises(FFmpegError, match="limite seguro"):
+        FFmpegFinder.download()
+
+
 def test_ensure_static_usa_cache_validado(monkeypatch, tmp_path: Path):
     cached = tmp_path / "ffmpeg.exe"
     cached.write_bytes(b"binary")

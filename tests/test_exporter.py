@@ -48,7 +48,27 @@ def test_renderiza_backend_intel_xpu():
     assert "Confiança Média Estimada:** 93.7%" in markdown
     assert "não garante fidelidade palavra por palavra" in markdown
     assert "`mundo` — confiança 42.0%" in markdown
-    assert "**[00:00:00 -> 00:00:05]** Olá, mundo." in markdown
+    assert "**[[00:00:00](audio://seek/0.000) -> 00:00:05]** Olá, mundo." in markdown
+
+
+def test_renderiza_modelo_grande_e_metadados_da_gravacao():
+    markdown = MarkdownExporter.render(
+        make_result(
+            model_name="large-v3",
+            recording_device="Microfone USB",
+            recording_format="M4A AAC 256 kbps",
+            recording_peak_dbfs=-3.2,
+            recording_warnings=("Possível clipping.",),
+            reviewed_segment_count=1,
+            suspected_hallucination_count=1,
+        )
+    )
+    assert "1.550M parâmetros" in markdown
+    assert "Microfone USB" in markdown
+    assert "-3.2 dBFS" in markdown
+    assert "Possível clipping" in markdown
+    assert "Segmentos Revisados Automaticamente:** 1" in markdown
+    assert "Possíveis Alucinações para Revisão:** 1" in markdown
 
 
 def test_renderiza_resultado_sem_fala():

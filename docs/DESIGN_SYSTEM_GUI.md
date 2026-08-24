@@ -1,8 +1,10 @@
 # Design System da Interface Qt/QSS
 
+> Autor e desenvolvedor: **Lucas Dias — Estudante de Ciência da Computação**.
+
 ## 1. Objetivos
 
-O design da versão v0.2.1 prioriza leitura prolongada, estados inequívocos e operação segura
+O design da versão v0.3.0 prioriza leitura prolongada, estados inequívocos e operação segura
 durante tarefas demoradas. A interface deve continuar utilizável em High-DPI sem depender de fontes
 ou temas externos.
 
@@ -89,7 +91,8 @@ A janela usa layout elástico. O editor e a visualização recebem o espaço ver
 ### Progresso
 
 - trilho `#18181C` e preenchimento índigo;
-- estado indeterminado durante resolução/download/carregamento;
+- estado determinado de preparação durante resolução/download/carregamento, evitando blocos
+  animados fragmentados;
 - percentual por timestamps durante inferência;
 - volta a zero no cancelamento e alcança 100% somente na conclusão.
 
@@ -132,3 +135,36 @@ A janela usa layout elástico. O editor e a visualização recebem o espaço ver
 Marca original com documento e onda sonora, sem texto, usando índigo `#6366F1`, esmeralda
 `#10B981` e transparência. `assets/icon.png` tem 256×256; `assets/icon.ico` contém 16, 32, 48 e
 256 px.
+
+## 9. Gravação e revisão v0.3.0
+
+- O cartão superior reúne microfone, formato, `Gravar`, `Pausar/Retomar`, `Parar`, cronômetro e
+  nível. Vermelho é reservado à captura ativa/ação de parada; roxo continua sendo a ação principal
+  da transcrição.
+- O medidor vai de 0 a 100% e não promete volume calibrado. A interface traduz `<5%` em sinal baixo
+  e `>=98%` em possível clipping.
+- Controles incompatíveis ficam desabilitados por estado, sem desaparecer ou mudar de posição.
+- `Pausar` muda para `Retomar`; o cronômetro representa somente amostras gravadas.
+- **Ativando o microfone** separa a abertura física do estado **Gravando**, evitando que a pessoa
+  fale antes de o primeiro bloco estar realmente disponível.
+- **Modelo de transcrição**, contexto, prioridade e revisão seletiva valem igualmente para arquivo
+  importado e gravação; cada modelo e prioridade oferecem uma explicação ao passar o mouse.
+- **Maior fidelidade** marca e bloqueia a revisão seletiva enquanto estiver ativa, tornando o custo
+  adicional explícito; **Equilibrada** permanece padrão e **Velocidade** prioriza menor latência.
+- Parar nunca inicia o modelo. **Salvar áudio como...** e **Iniciar transcrição** são decisões
+  separadas, preservando responsividade e previsibilidade.
+- Links `audio://seek/<segundos>` da visualização posicionam o player sem abrir URL externa.
+- O monitor permanece visível durante e depois da transcrição: tempo, CPU/RAM do aplicativo e,
+  quando o backend é NVIDIA, GPU total e VRAM informadas pelo driver.
+- O conteúdo rola verticalmente, ocupa a largura disponível até 1480 px e evita campos esticados
+  em telas ultrawide. A janela mínima é 820 x 640; o tamanho inicial é 1240 x 860.
+- Tipografia usa 11 pt como base, 10 pt apenas para texto secundário e 18 pt no título, respeitando
+  escala High-DPI do Qt.
+- O resultado fica em um `QSplitter` vertical. A alça redimensiona o painel e **Expandir
+  resultado** oculta apenas a área superior; **Restaurar** ou `Esc` recuperam o divisor anterior.
+- Texto, aba, rolagem, edição e reprodução não são reconstruídos durante a expansão.
+- As larguras obrigatórias de validação são 820, 900, 1240 e 1536 px, sem rolagem horizontal.
+- O catálogo começa por **Offline** ou **Requer download**. Cada item informa parâmetros, VRAM,
+  velocidade, fidelidade, tamanho e disponibilidade; o botão de download aparece só quando útil.
+- `large-v3` permanece a primeira escolha de máxima fidelidade, mas seu rótulo informa **Requer
+  download**; `medium` e `turbo` continuam utilizáveis sem rede desde a instalação.

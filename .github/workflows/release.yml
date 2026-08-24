@@ -16,29 +16,29 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
       - name: Instalar bibliotecas Qt no Linux
         run: |
           sudo apt-get update
           sudo apt-get install --yes libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
-      - run: uv python install 3.11
-      - run: uv venv --python 3.11
+      - run: uv python install 3.11.16
+      - run: uv venv --python 3.11.16
       - run: uv pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
       - run: uv pip install -r requirements/cpu.txt
       - run: uv run --no-sync python build.py
-      - name: Nomear artefato Linux
-        run: mv dist/WhisperTranscriber dist/WhisperTranscriber-Linux-x64
       - name: Autoverificar executável Linux
         run: |
-          ./dist/WhisperTranscriber-Linux-x64 --self-check-output dist/self-check-linux.json
+          ./dist/WhisperTranscriber/WhisperTranscriber --self-check-output dist/self-check-linux.json
           python -c "import json; p=json.load(open('dist/self-check-linux.json')); assert p['status']=='ok' and p['runtime_pytorch']=='CPU', p"
       - name: Gerar instalador offline DEB
         run: |
           version="$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")"
           mkdir -p dist/deb-root/DEBIAN dist/deb-root/opt/whisper-transcriber dist/deb-root/usr/bin dist/deb-root/usr/share/applications dist/deb-root/usr/share/icons/hicolor/256x256/apps
           sed "s/@VERSION@/${version}/g" packaging/linux/control.in > dist/deb-root/DEBIAN/control
-          cp dist/WhisperTranscriber-Linux-x64 dist/deb-root/opt/whisper-transcriber/WhisperTranscriber
+          cp -a dist/WhisperTranscriber/. dist/deb-root/opt/whisper-transcriber/
           ln -s /opt/whisper-transcriber/WhisperTranscriber dist/deb-root/usr/bin/whisper-transcriber
           cp packaging/linux/whisper-transcriber.desktop dist/deb-root/usr/share/applications/
           cp assets/icon.png dist/deb-root/usr/share/icons/hicolor/256x256/apps/whisper-transcriber.png
@@ -50,15 +50,21 @@ jobs:
           python -c "import json; p=json.load(open('dist/self-check-linux-instalado.json')); assert p['status']=='ok' and p['runtime_pytorch']=='CPU', p"
           sudo dpkg --remove whisper-transcriber-desktop
       - name: Gerar checksums Linux
-        run: sha256sum dist/WhisperTranscriber-Linux-x64 dist/WhisperTranscriber-Setup-Linux-x64.deb > dist/SHA256SUMS-Linux.txt
-      - uses: actions/upload-artifact@v7.0.1
+        run: sha256sum dist/WhisperTranscriber-Linux-x64.tar.gz dist/WhisperTranscriber-Setup-Linux-x64.deb > dist/SHA256SUMS-Linux.txt
+      - name: Fracionar pacotes Linux para a GitHub Release
+        run: |
+          mkdir -p dist/release
+          for arquivo in dist/WhisperTranscriber-Linux-x64.tar.gz dist/WhisperTranscriber-Setup-Linux-x64.deb; do
+            nome="$(basename "$arquivo")"
+            split --bytes=1900M --numeric-suffixes=1 --suffix-length=2 "$arquivo" "dist/release/${nome}.part-"
+          done
+          cp dist/SHA256SUMS-Linux.txt dist/release/
+          cp store/Instalar-WhisperTranscriber-Windows.url dist/release/
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: Downloads-Linux-CPU
           path: |
-            dist/WhisperTranscriber-Linux-x64
-            dist/WhisperTranscriber-Setup-Linux-x64.deb
-            dist/SHA256SUMS-Linux.txt
-            store/Instalar-WhisperTranscriber-Windows.url
+            dist/release/*
           if-no-files-found: error
 
   build-windows-nvidia:
@@ -67,10 +73,12 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v10.0.1
-      - run: uv python install 3.11
-      - run: uv venv --python 3.11
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+      - run: uv python install 3.11.16
+      - run: uv venv --python 3.11.16
       - run: uv pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cu130
       - run: uv pip install -r requirements/cpu.txt
       - name: Instalar Inno Setup
@@ -96,14 +104,15 @@ jobs:
       - name: Gerar checksum Windows NVIDIA
         shell: pwsh
         run: |
-          $arquivo = "dist/installer/WhisperTranscriber-Setup-Windows-x64.exe"
-          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $arquivo).Hash.ToLowerInvariant()
-          "$hash  WhisperTranscriber-Setup-Windows-x64.exe" | Set-Content -Encoding ascii dist/installer/SHA256SUMS-Windows-NVIDIA-CUDA.txt
-      - uses: actions/upload-artifact@v7.0.1
+          $arquivos = Get-ChildItem -LiteralPath dist/installer -File | Where-Object { $_.Name -like 'WhisperTranscriber-Setup-Windows-x64*' -and $_.Name -notlike '*CPU*' }
+          $linhas = foreach ($arquivo in $arquivos) { "$((Get-FileHash -Algorithm SHA256 -LiteralPath $arquivo.FullName).Hash.ToLowerInvariant())  $($arquivo.Name)" }
+          $linhas | Set-Content -Encoding ascii dist/installer/SHA256SUMS-Windows-NVIDIA-CUDA.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: Instalador-Windows-NVIDIA-CUDA
           path: |
             dist/installer/WhisperTranscriber-Setup-Windows-x64.exe
+            dist/installer/WhisperTranscriber-Setup-Windows-x64-*.bin
             dist/installer/SHA256SUMS-Windows-NVIDIA-CUDA.txt
           if-no-files-found: error
 
@@ -113,10 +122,12 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v10.0.1
-      - run: uv python install 3.11
-      - run: uv venv --python 3.11
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+      - run: uv python install 3.11.16
+      - run: uv venv --python 3.11.16
       - run: uv pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
       - run: uv pip install -r requirements/cpu.txt
       - name: Instalar Inno Setup
@@ -140,24 +151,51 @@ jobs:
           $remocao = Start-Process -FilePath $desinstalador -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -WindowStyle Hidden -Wait -PassThru
           if ($remocao.ExitCode -ne 0) { throw "Desinstalação CPU falhou: $($remocao.ExitCode)" }
       - name: Gerar e autoverificar executável portátil CPU
-        run: |
-          uv run --no-sync python build.py
-          Move-Item -LiteralPath dist/WhisperTranscriber.exe -Destination dist/WhisperTranscriber-Windows-x64.exe
+        run: uv run --no-sync python build.py
       - name: Gerar checksums Windows CPU
         shell: pwsh
         run: |
           $instalador = "dist/installer/WhisperTranscriber-Setup-Windows-x64-CPU.exe"
-          $portatil = "dist/WhisperTranscriber-Windows-x64.exe"
-          $hashInstalador = (Get-FileHash -Algorithm SHA256 -LiteralPath $instalador).Hash.ToLowerInvariant()
+          $portatil = "dist/WhisperTranscriber-Windows-x64.zip"
           $hashPortatil = (Get-FileHash -Algorithm SHA256 -LiteralPath $portatil).Hash.ToLowerInvariant()
-          @("$hashInstalador  WhisperTranscriber-Setup-Windows-x64-CPU.exe", "$hashPortatil  WhisperTranscriber-Windows-x64.exe") | Set-Content -Encoding ascii dist/installer/SHA256SUMS-Windows-CPU.txt
-      - uses: actions/upload-artifact@v7.0.1
+          $arquivos = Get-ChildItem -LiteralPath dist/installer -File | Where-Object { $_.Name -like 'WhisperTranscriber-Setup-Windows-x64-CPU*' }
+          $linhas = foreach ($arquivo in $arquivos) { "$((Get-FileHash -Algorithm SHA256 -LiteralPath $arquivo.FullName).Hash.ToLowerInvariant())  $($arquivo.Name)" }
+          @($linhas; "$hashPortatil  WhisperTranscriber-Windows-x64.zip") | Set-Content -Encoding ascii dist/installer/SHA256SUMS-Windows-CPU.txt
+      - name: Fracionar portátil Windows para a GitHub Release
+        shell: pwsh
+        run: |
+          $origem = [IO.File]::OpenRead((Resolve-Path "dist/WhisperTranscriber-Windows-x64.zip"))
+          $tamanhoParte = 1900000000L
+          $buffer = New-Object byte[] 4194304
+          try {
+            $indice = 1
+            while ($origem.Position -lt $origem.Length) {
+              $destino = [IO.File]::Create((Join-Path (Resolve-Path "dist").Path ("WhisperTranscriber-Windows-x64.zip.part-{0:D2}" -f $indice)))
+              try {
+                $gravado = 0L
+                while ($gravado -lt $tamanhoParte -and $origem.Position -lt $origem.Length) {
+                  $restante = [Math]::Min($buffer.Length, $tamanhoParte - $gravado)
+                  $lidos = $origem.Read($buffer, 0, [int]$restante)
+                  if ($lidos -eq 0) { break }
+                  $destino.Write($buffer, 0, $lidos)
+                  $gravado += $lidos
+                }
+              } finally {
+                $destino.Dispose()
+              }
+              $indice++
+            }
+          } finally {
+            $origem.Dispose()
+          }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: Downloads-Windows-CPU
           path: |
             dist/installer/WhisperTranscriber-Setup-Windows-x64-CPU.exe
+            dist/installer/WhisperTranscriber-Setup-Windows-x64-CPU-*.bin
             dist/installer/SHA256SUMS-Windows-CPU.txt
-            dist/WhisperTranscriber-Windows-x64.exe
+            dist/WhisperTranscriber-Windows-x64.zip.part-*
           if-no-files-found: error
 
   release:
@@ -168,25 +206,29 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v8.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artefatos
-      - uses: softprops/action-gh-release@v3.0.2
+      - uses: softprops/action-gh-release@fe965f7af51af5f2602596916f38a38df2e33de0 # v3.0.2
         with:
           generate_release_notes: true
           files: artefatos/**/*
           body: |
             ## Downloads
 
-            - **Windows 10/11 x64 com GPU NVIDIA compatível (recomendado):** `WhisperTranscriber-Setup-Windows-x64.exe`; contém PyTorch CUDA 13 e também recua automaticamente para CPU.
-            - **Windows 10/11 x64 somente CPU:** `WhisperTranscriber-Setup-Windows-x64-CPU.exe` ou o portátil `WhisperTranscriber-Windows-x64.exe`.
-            - **Debian/Ubuntu x86-64 CPU:** `WhisperTranscriber-Setup-Linux-x64.deb` ou o portátil `WhisperTranscriber-Linux-x64`.
-            - **Microsoft Store:** [abrir a página oficial](https://apps.microsoft.com/detail/9PHWS6MM59BG) ou usar `Instalar-WhisperTranscriber-Windows.url`; a aquisição depende da publicação pela Microsoft.
+            - **Windows 10/11 x64 com GPU NVIDIA compatível (recomendado):** baixe o launcher `WhisperTranscriber-Setup-Windows-x64.exe` e todas as fatias CUDA `.bin` na mesma pasta.
+            - **Windows 10/11 x64 somente CPU:** baixe o launcher `WhisperTranscriber-Setup-Windows-x64-CPU.exe` e todas as fatias CPU `.bin` na mesma pasta.
+            - **Windows portátil CPU:** concatene `WhisperTranscriber-Windows-x64.zip.part-*` na ordem numérica para reconstruir o ZIP.
+            - **Debian/Ubuntu x86-64 CPU:** concatene as partes do `.deb` ou do `.tar.gz` na ordem numérica antes de instalar/extrair.
+            - **Microsoft Store gratuita:** [abrir a edição existente](https://apps.microsoft.com/detail/9PHWS6MM59BG). A edição Pro v0.3.0 usa outro produto após certificação.
             - **Código-fonte:** arquivos `.zip` e `.tar.gz` gerados pelo GitHub.
 
             Confira o arquivo `SHA256SUMS-*` correspondente antes de instalar.
-            Os pacotes são offline para aplicação, PyTorch e FFmpeg; somente o
-            modelo Whisper `turbo` é baixado uma vez no primeiro uso.
+            Os arquivos grandes são divididos porque cada anexo da GitHub Release
+            precisa ter menos de 2 GiB; os hashes referem-se ao arquivo integral.
+            Os pacotes incluem `medium` e `turbo` para transcrição totalmente
+            offline. `tiny`, `base`, `small` e `large-v3` têm download explícito
+            opcional e passam a funcionar offline depois da validação SHA-256.
 
             O instalador offline Windows não possui Authenticode e pode ser
             bloqueado por políticas como Smart App Control. Não desative a
