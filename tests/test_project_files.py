@@ -49,6 +49,13 @@ def test_atalho_windows_aponta_para_o_produto_reservado_na_store():
 
     assert "https://apps.microsoft.com/detail/9PHWS6MM59BG" in shortcut
 
+    shortcut_pro = (
+        ROOT / "store" / "Instalar-WhisperTranscriberPro-Windows.url"
+    ).read_text(encoding="utf-8")
+
+    assert "https://apps.microsoft.com/detail/9NJN8VV2N833" in shortcut_pro
+
+
 
 def test_release_publica_todas_as_opcoes_suportadas():
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
