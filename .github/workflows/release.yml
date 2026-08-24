@@ -225,10 +225,10 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artefatos
-      - uses: softprops/action-gh-release@fe965f7af51af5f2602596916f38a38df2e33de0 # v3.0.2
+      - name: Criar ou atualizar a GitHub Release
+        uses: softprops/action-gh-release@fe965f7af51af5f2602596916f38a38df2e33de0 # v3.0.2
         with:
           generate_release_notes: true
-          files: artefatos/**/*
           body: |
             ## Downloads
 
@@ -250,3 +250,24 @@ jobs:
             bloqueado por políticas como Smart App Control. Não desative a
             proteção do Windows; nesses computadores, use a Microsoft Store
             assim que a publicação estiver disponível.
+      - name: Enviar anexos grandes sequencialmente
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' arquivo; do
+            enviado=false
+            for tentativa in 1 2 3; do
+              echo "Enviando $(basename "$arquivo") (tentativa ${tentativa}/3)..."
+              if gh release upload "$GITHUB_REF_NAME" "$arquivo" --clobber; then
+                enviado=true
+                break
+              fi
+              sleep $((tentativa * 15))
+            done
+            if [ "$enviado" != true ]; then
+              echo "Falha ao enviar $arquivo após três tentativas." >&2
+              exit 1
+            fi
+          done < <(find artefatos -type f -print0 | sort -z)
