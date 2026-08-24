@@ -20,6 +20,11 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.5"
+      - name: Liberar espaço do runner Linux
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost
+          sudo apt-get clean
+          df -h /
       - name: Instalar bibliotecas Qt no Linux
         run: |
           sudo apt-get update
@@ -43,6 +48,7 @@ jobs:
           cp packaging/linux/whisper-transcriber.desktop dist/deb-root/usr/share/applications/
           cp assets/icon.png dist/deb-root/usr/share/icons/hicolor/256x256/apps/whisper-transcriber.png
           dpkg-deb --build --root-owner-group dist/deb-root dist/WhisperTranscriber-Setup-Linux-x64.deb
+          rm -rf dist/deb-root
       - name: Instalar, verificar e remover o pacote DEB
         run: |
           sudo dpkg --install dist/WhisperTranscriber-Setup-Linux-x64.deb
@@ -60,6 +66,8 @@ jobs:
           done
           cp dist/SHA256SUMS-Linux.txt dist/release/
           cp store/Instalar-WhisperTranscriber-Windows.url dist/release/
+          rm -rf build .venv dist/WhisperTranscriber
+          rm -f dist/WhisperTranscriber-Linux-x64.tar.gz dist/WhisperTranscriber-Setup-Linux-x64.deb
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: Downloads-Linux-CPU
@@ -188,6 +196,9 @@ jobs:
           } finally {
             $origem.Dispose()
           }
+          Remove-Item -LiteralPath "dist/WhisperTranscriber-Windows-x64.zip" -Force
+          if (Test-Path -LiteralPath "dist/WhisperTranscriber") { Remove-Item -LiteralPath "dist/WhisperTranscriber" -Recurse -Force }
+          if (Test-Path -LiteralPath "build") { Remove-Item -LiteralPath "build" -Recurse -Force }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: Downloads-Windows-CPU
