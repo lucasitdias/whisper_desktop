@@ -34,7 +34,8 @@ CUDA_INSTALLER_BUNDLE_NAME = "WhisperTranscriber-Setup-Windows-x64-Offline.zip"
 CPU_INSTALLER_BUNDLE_NAME = "WhisperTranscriber-Setup-Windows-x64-CPU-Offline.zip"
 STORE_PACKAGE_NAME = "WhisperTranscriberDesktop.WhisperTranscriberDeskto"
 STORE_PUBLISHER = "CN=8D30778F-07F5-435C-A526-6B1646073081"
-STORE_PUBLISHER_DISPLAY_NAME = "Lucas Dias"
+STORE_DISPLAY_NAME = "Whisper Transcriber Desktop Pro"
+STORE_PUBLISHER_DISPLAY_NAME = "Whisper Transcriber Desktop Pro"
 STORE_ID = "9NJN8VV2N833"
 # A versão técnica do pacote precisa ser monotônica no Partner Center. Ela é
 # independente da versão pública do aplicativo e da tag do GitHub.
@@ -292,6 +293,7 @@ def render_msix_manifest(destination: Path) -> Path:
     content = Template(template_path.read_text(encoding="utf-8")).substitute(
         PACKAGE_NAME=STORE_PACKAGE_NAME,
         PUBLISHER=STORE_PUBLISHER,
+        DISPLAY_NAME=STORE_DISPLAY_NAME,
         PUBLISHER_DISPLAY_NAME=STORE_PUBLISHER_DISPLAY_NAME,
         VERSION=STORE_PACKAGE_VERSION,
         EXECUTABLE=f"{APP_EXECUTABLE}.exe",

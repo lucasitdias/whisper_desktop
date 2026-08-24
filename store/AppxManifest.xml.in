@@ -12,7 +12,7 @@
     ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>Whisper Transcriber Desktop</DisplayName>
+    <DisplayName>$DISPLAY_NAME</DisplayName>
     <PublisherDisplayName>$PUBLISHER_DISPLAY_NAME</PublisherDisplayName>
     <Description>Transcrição local de MP3 e M4A para Markdown usando OpenAI Whisper.</Description>
     <Logo>Assets\StoreLogo.png</Logo>

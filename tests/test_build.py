@@ -40,7 +40,10 @@ def test_render_msix_manifest_usa_identidade_da_store(tmp_path: Path):
 
     assert build.STORE_PACKAGE_NAME in content
     assert build.STORE_PUBLISHER in content
-    assert "<PublisherDisplayName>Lucas Dias</PublisherDisplayName>" in content
+    assert (
+        f"<PublisherDisplayName>{build.STORE_PUBLISHER_DISPLAY_NAME}</PublisherDisplayName>"
+        in content
+    )
     assert f'Version="{build.STORE_PACKAGE_VERSION}"' in content
     assert 'Executable="WhisperTranscriber.exe"' in content
     assert 'Name="runFullTrust"' in content
@@ -223,5 +226,5 @@ def test_fatias_cuda_e_cpu_nao_se_misturam(tmp_path: Path):
 
 
 def test_metadados_de_distribuicao_identificam_o_desenvolvedor():
-    assert build.STORE_PUBLISHER_DISPLAY_NAME == "Lucas Dias"
+    assert build.STORE_PUBLISHER_DISPLAY_NAME == "Whisper Transcriber Desktop Pro"
     assert build.STORE_PACKAGE_VERSION == "1.3.4.0"
